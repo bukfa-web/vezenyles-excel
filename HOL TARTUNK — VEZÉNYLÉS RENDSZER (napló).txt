@@ -1,0 +1,1713 @@
+2) HOL TARTUNK — VEZÉNYLÉS RENDSZER (napló)
+2026-03-03 — Új chat / Architektúra rögzítés (LOCK)
+
+Cél: Kanonikus Biblia + Hol tartunk létrehozva, ez alapján dolgozunk, nem emlékezetből.
+
+Mérési baseline (LOCK Step0) — RÖGZÍTVE
+
+Timestamp: 2026-03-03 14:59
+
+Workbook: Vezénylés_Stabil_2026.02.26.xlsm
+
+Sheets(count): 7
+
+Érintett lapok (7):
+
+Vezénylés
+
+Sofőrök
+
+Színek
+
+Fuvarok
+
+Eseménynapló
+
+Beállítások
+
+Diag
+
+Sofőrök SSOT:
+
+SoforLista: OK
+
+Range: Sofőrök!A1:D25
+
+Drivers(N): 24
+
+Oszlopok (OK):
+
+sorszam (1)
+
+sofor (2)
+
+vontato (3)
+
+potkocsi (4)
+
+Vezénylés fejléc (2 sor, B1-től, N széles):
+
+HeaderRange: Vezénylés!B1:Y2
+
+HeaderRows: 1..2
+
+HeaderCols: B..Y
+
+Aktuális méretek (valós Excel állapot):
+
+RowHeight(1): 19,1
+
+RowHeight(2): 19,1
+
+FirstDriverColWidth(B): 22,56
+
+LastDriverColWidth(Y): 22,56
+
+StandardRowHeight: 14,4
+
+Beállítások (kulcsok keresése):
+
+Beállítások sheet: OK
+
+driver_col_px: nincs találat
+
+header_row_px: nincs találat
+
+data_row_px: nincs találat
+
+Protect státusz (csak mérés):
+
+Vezénylés.ProtectContents: HAMIS
+
+Vezénylés.ProtectDrawingObjects: HAMIS
+
+Vezénylés.ProtectScenarios: HAMIS
+
+VBA modulok (rövid):
+
+modDiag (32)
+
+modMunkanap (164)
+
+modLayout (102)
+
+modSettingsUI (117)
+
+modDiagBaseline (404)
+
+Ambiguous name gyanú: nincs duplikált eljárásnév
+
+Következő lépés (LOCK szerint)
+
+0A) Beállítások SSOT kulcsok rögzítése — RÖGZÍTVE
+
+Beállítások SSOT formátum (kanonikus):
+
+Sheet: Beállítások
+
+User-szerkesztésre szolgáló panel: H:I:J
+
+H = Kulcs
+
+I = Érték
+
+J = Megjegyzés
+
+Kód oldali SSOT (prioritás): Workbook-szintű Named Range-ek a cfg_* kulcsokra (a GoTo/Name Manager listában látszanak).
+
+Forrás-prioritás: NamedRange → (fallback) H:I panel keresés
+
+Indok: a Named Range stabilabb több-user és layout-mozgatás esetén; a H:I panel marad a "szerkesztő UI".
+
+Kanonikus (jelenlegi) kulcsok a fájlban (cfg_*):
+
+cfg_date_col_width = 5,3
+
+cfg_driver_col_width = 22,5
+
+cfg_header_row1_height = 19
+
+cfg_header_row2_height = 19
+
+cfg_data_row_height = 52,5
+
+cfg_data_last_row = 370
+
+Megjegyzés: a korábban tervezett driver_col_px / header_row_px / data_row_px kulcsok nem léteznek ebben a workbookban; a kanonikus SSOT kulcsok cfg_* néven rögzítettek.
+
+0B) Kanonikus Settings-olvasó SSOT — LEZÁRVA
+
+A cfg_* kulcsok workbook-szintű NamedRange-ként rögzítve (minden kulcs).
+
+Forrás-prioritás: NamedRange (a panel H:I:J csak szerkesztő UI).
+
+Kulcsok:
+
+cfg_date_col_width
+
+cfg_driver_col_width
+
+cfg_header_row1_height
+
+cfg_header_row2_height
+
+cfg_data_row_height
+
+cfg_data_last_row
+
+LOCK Step1 — KÉSZ (képlet-alapú fejléc + dátum tengely védelem)
+
+Fejléc tartomány: Vezénylés!B1:Y2 nem kijelölhető / nem szerkeszthető (EnableSelection = xlUnlockedCells).
+
+Dátum tengely: Vezénylés!A1:A372 nem kijelölhető / nem szerkeszthető (A1..A(2+cfg_data_last_row)).
+
+Lapvédelem: Protect + UserInterfaceOnly=True (VBA dolgozhat, user nem írhat a LOCK tartományokba).
+
+User visszaigazolás: „teljesen jó, nem kattintható a dátum sem és a fejléc két sora sem”.
+
+Következő lépés: LOCK Step1B — UserInterfaceOnly perzisztencia (Workbook_Open-ben újra be kell állítani minden megnyitáskor), majd LOCK Step2 (ApplyLayout anti-szétcsúszás). (Fejléc védelem / UserInterfaceOnly) és Step2-re (ApplyLayout anti-szétcsúszás). lépünk tovább LOCK Step1-re (Fejléc védelem / UserInterfaceOnly) és Step2-re (ApplyLayout anti-szétcsúszás).
+
+INDEXELÉSI SZABÁLY (2026-03-03 LOCK)
+
+A Kanonikus Biblia és a Hol tartunk dokumentum innentől:
+
+❗ Nem kerül teljes újraírásra.
+
+❗ Nem duplikáljuk a teljes szekciókat.
+
+✔ Csak sorszámozott, dátumozott változás-bejegyzések kerülnek a dokumentum végére.
+
+✔ Minden új LOCK lépés külön, rövid changelog blokkban kerül rögzítésre.
+
+Formátum: [YYYY-MM-DD | LOCK StepX] Rövid állapot + 1-2 sor leírás
+
+[2026-03-03 | LOCK Step1B] UserInterfaceOnly perzisztencia
+
+Workbook_Open-ben védelem újraalkalmazás implementálva.
+
+Újranyitás teszt: védelem aktív marad.
+
+Fejléc (B1:Y2) + Dátum tengely (A1:A372) stabil.
+
+Következő: LOCK Step2 – ApplyLayout anti-szétcsúszás (NamedRange-alapú, determinisztikus).
+
+[2026-03-03 | LOCK Step2A] cfg_* NamedRange stabilizálás kulcs alapján
+
+cfg_* NamedRange-ek újrakötve a Beállítások lapon a Kulcs (H oszlop) alapján, az adott sor I cellájára.
+
+SmokeTest OK: A width=5,3; Driver width=22,5; Row1=19; Row2=19; DataRow=52,5; N=24; lastRow=372.
+
+Kézi oszlop/sor húzás tiltva (Protect + AllowFormattingColumns/Rows=False).
+
+Következő: LOCK Step2B – Dátum oszlop formátum egységesítés + (újra) rögzítés: fejléc (B1:Y2) + dátum tengely (A1:A(2+N)).
+
+[2026-03-03 | LOCK Step2E] Freeze Panes SSOT
+
+Beallitasok kulcsok: cfg_freeze_cell=B3, cfg_freeze_enabled=1.
+
+Workbook_Open-ben ApplyFreezeFromSettings meghivva.
+
+Ujranyitas teszt: oszloptablak rogzitese aktiv (A oszlop + 1-2 sor a B3 alapjan).
+
+2026-03-04
+
+Hol tartunk most (tények)
+
+Az Eseménynapló NEM üres – csak rossz cellatartományt néztél korábban.
+A logolás NEM működi OPEN_BEGIN/STEP_OK/OPEN_END sorok sem látszanak a kézi TEST sorok most már nem működnek!
+
+A régi „Attribute VB_Name… syntax error” ügy lezárt téma – ezt nem visszük tovább, nem nyitjuk újra.
+
+Jelenlegi valódi hiba, amivel foglalkozni kell:
+
+Compile error: “Sub or Function not defined” a modAudit-ban az Audit_Ensure körül (képen: SSOT_GetSheetOrCreate_Audit() vagy hasonló hívás van kiemelve).
+
+Ez név-eltérés / hiányzó eljárás jellegű hiba: a hívott függvény neve nem egyezik azzal, ami ténylegesen létezik a projektben (vagy rossz verzió keveredett be).
+
+Másik valós hiba, amit vissza kell állítani:
+
+Sofőrök lapon a sorbarendezés és a duplikáció-figyelés most nem működik (korábban működött → regresszió).
+
+“Ne írj bele olyat, ami nincs a projektben” – jogos.
+Konkrét példa: nálad a név szerinti rebind eljárás nem FixNamedRanges_RebindAll, hanem:
+
+✅ Rebind_Config_NamedRanges_ByKey (modFixNamedRanges.bas)
+
+Mitől volt a “makró nem futtatható / 1004” (okozat)
+
+Amikor a Settings Apply-ban Application.Run-nal vagy nem létező névvel próbáltunk hívni makrókat, Excel ezt dobta:
+
+“makró nem futtatható / letiltva / nem érhető el” (1004)
+
+Tanulság: csak olyan eljárást hívunk, ami biztosan létezik (és pontos néven), és a ThisWorkbook-on belüli publikus eljárást direktben hívjuk (nem Application.Run).
+
+Biztonsági mentés (STEP 1) – hova és hogyan?
+
+Mappa (SSOT döntés):
+✅ C:\Users\bukfa\Documents\Vezénylés export
+
+Hogyan jöjjön létre a mentés?
+Két módot fogunk csinálni (hogy legyen kontroll és automatizmus is):
+
+Manuális mentés (biztos, nem idegesítő):
+
+egy gomb / makró: „Backup készítése”
+
+mindig készít timestampelt .xlsm másolatot a fenti mappába
+
+Automatikus mentés (védőháló, de “őrrel”):
+
+Workbook_Open elején készít 1 db mentést / session (ne spam-eljen)
+
+ugyanerre a mappára
+
+Ezt az új chatben először dokumentáljuk, aztán implementáljuk minimál patch-csel.
+
+Új chatben mivel induljunk (szigorúan “ELŐSZÖR MÉRÉS”)
+
+0) Cél: visszaállítani a működő állapotot úgy, hogy közben semmit nem rontunk el.
+
+1) Mérés #1 – compile hiba forrása
+
+Megnézzük a projektben ténylegesen milyen nevű függvények/proc-ok vannak:
+
+SSOT_GetSheetOrCreate_Audit vs SSOT_GetSheetOrCreate_Audit() vs SSOT_GetSheetOrCreate_AuditSheet stb.
+
+Audit_GetOrCreateTable vs Audit_GetOrCreateTable(ws) stb.
+
+Ehhez az új chatben csak a hibás fájlt nyitjuk: modAudit.
+
+2) Mérés #2 – Sofőrök regresszió
+
+A Sofőrök lapon mi kezeli a rendezést/duplikációt? (valószínű: modMunkanap vagy Sofőrök sheet event-ek)
+
+Itt is: először export + összevetés a “jó” verzióval (ha van mentés), utána minimál patch.
+
+Fontos: fájlok újrafeltöltése
+
+A rendszer jelzése szerint néhány korábban feltöltött fájl lejárt, ezért az új chatben kérlek töltsd fel újra (különben vakon nem nyúlunk hozzá):
+
+Minimum csomag az induláshoz:
+
+modAudit.bas (a “Sub or Function not defined” hiba miatt)
+
+modFixNamedRanges.bas (hogy a pontos proc nevét használjuk: Rebind_Config_NamedRanges_ByKey)
+
+modMunkanap.bas (Sofőrök rendezés/duplikáció esélyes helye)
+
+ThisWorkbook.cls (Workbook_Open/SheetActivate hívások ellenőrzése)
+
+Opcionális (ha kell a freeze / layout kapcsán):
+
+modStep2_LayoutAndDates.bas
+
+2026-03-04 — Stabilizalas: Audit + SSOT alap rendben, Freeze hiba meres elott
+
+- modAudit compile hiba javitva (audit sheet resolver es SSOT alapok helyreallitva).
+- Esemenynaplo mukodik (OPEN/SETTINGS logok irasa OK).
+- Soforok rendezes/duplikacio helyreallt.
+- Maradt problema: Beallitasok -> Freeze (oszlop/ablak rogzitese) nem alkalmazodik.
+  Megfigyeles: ApplyFreezeFromSettings FREEZE_SKIP "disabled (I10 <> 1)".
+  Feltetelezes: a kod meg legacy cellakbol (I10/I11) olvas, mikozben SSOT mar cfg_freeze_enabled / cfg_freeze_cell kulcsokkal mukodik.
+- Kovetkezo: meres — kulcsok / named range-ek / legacy cellak teljes listaja es egyezoseg ellenorzese, majd minimal patch.
+
+2026-03-04 — MERES: Freeze SSOT ertek
+
+- Diag: cfg_freeze_cell = B3 (OK).
+- Diag: cfg_freeze_enabled = 4 (nem 1), emiatt a kod FREEZE_SKIP/disabled agra megy.
+- Kovetkezo: definialni, hogy cfg_freeze_enabled SSOT ertekei: 0/1 vagy enum (pl. 4=ON),
+  es ennek megfeleloen minimal patch ApplyFreezeFromSettings-ben.
+
+2026-03-04 — REGRESSZIO: Vezénylés fejléc/dátumtengely “eltűnt” Apply után
+
+- Audit OK, Sofőrök OK.
+- Beállítások Apply után a Vezénylés lapon a fejléc és dátumtengely nem látszik.
+- Feltételezés: NamedRange rebind után cfg_* rossz cellára mutat -> 0/hibás sormagasság/oszlopszélesség vagy rejtés.
+- Mérési terv: NamedRange-ek (cfg_*) RefersTo + Value, valamint Vezénylés sor/oszlop méretek és Hidden státusz rögzítése.
+
+[2026-03-04 | DIAG] 1004 ok méréssel azonosítva
+- PROBE_Diag_1004: wsV/wsD OK, írás/olvasás OK, cfg_* enumerálás OK.
+- Diag_Vezenyles_View_And_NamedRanges 1004-et az AutoFit (wsD.Columns("A:E").AutoFit) tudja kiváltani.
+- Patch: AutoFit safe wrapper (hiba esetén DIAG-ban "ERR 1004", makró nem áll meg).
+- Megjegyzés: Diag lapon új blokkokat mindig üres sorral szeparálunk (ne keveredjen a mérés).
+
+2026-03-22
+
+A terv végig a lezárt kör szabályát követi: új cfg_ kulcsok bekerülnek a rendszerbe, de még nincs visible window, sorrejtés, sofőroszlopszámítás vagy üzemi logika-változás*. A kilépési feltétel is ez: kulcsok bent legyenek, bind működjön, olvasás működjön, compile zöld legyen, a jelenlegi render ne romoljon el.
+
+A bevezetendő új kulcsok és javasolt alapértékeik:
+
+cfg_visible_past_days = 30
+
+cfg_visible_future_days = 45
+
+cfg_hide_outside_window = 1
+
+cfg_driver_extra_cols = 3
+
+cfg_driver_source_mode = SOFOROK_AUTO
+
+cfg_driver_fixed_count = 0
+
+Patch sorrend
+0. Nem kód: Beállítások lap fizikai bővítése
+
+Érintett “fájl”: maga a workbook / Beállítások lap
+
+Ez lesz az első lépés, még a VBA patch előtt, mert a bind logika a H oszlop kulcsai alapján dolgozik. A napló szerint a kanonikus editor panel a Beállítások!H:I:J, ahol H=Kulcs, I=Érték, J=Megjegyzés, és a workbook-szintű Named Range-eket ezekhez kell kötni.
+
+Mit változtatunk:
+A mostani 8 meglévő kulcs alá felvesszük a 6 új kulcsot, ebben a sorrendben:
+
+cfg_visible_past_days
+
+cfg_visible_future_days
+
+cfg_hide_outside_window
+
+cfg_driver_extra_cols
+
+cfg_driver_source_mode
+
+cfg_driver_fixed_count
+
+I oszlop default értékek:
+
+30
+
+45
+
+1
+
+3
+
+SOFOROK_AUTO
+
+0
+
+J oszlop megjegyzések:
+
+Ennyi múltbeli nap látszódjon
+
+Ennyi jövőbeli nap látszódjon
+
+Időablakon kívüli sorok elrejtése
+
+Tartalék sofőroszlopok száma
+
+Sofőroszlopszámítás módja
+
+Fix sofőroszlopszám FIXED módban
+
+Miért ez az első lépés:
+A rebind kulcs alapján keresi a H oszlopot, ezért előbb a fizikai kulcslistának kell léteznie.
+
+1. modFixNamedRanges.bas
+
+Ez a kötelező első VBA patch.
+
+A napló szerint a kanonikus rebind eljárás neve pontosan Rebind_Config_NamedRanges_ByKey, és nem szabad más, kitalált nevet használni. A kulcs-alapú újrakötés már rögzített döntés.
+
+Mit változtatunk benne:
+A keys = Array(...) tömböt bővítjük a 6 új kulccsal.
+
+A tömb új sorrendje legyen ez:
+
+cfg_date_col_width
+
+cfg_driver_col_width
+
+cfg_header_row1_height
+
+cfg_header_row2_height
+
+cfg_data_row_height
+
+cfg_data_last_row
+
+cfg_freeze_cell
+
+cfg_freeze_enabled
+
+cfg_visible_past_days
+
+cfg_visible_future_days
+
+cfg_hide_outside_window
+
+cfg_driver_extra_cols
+
+cfg_driver_source_mode
+
+cfg_driver_fixed_count
+
+Mit NEM változtatunk:
+
+nem írunk új bind mechanizmust
+
+nem nyúlunk a BindOne logikához
+
+nem változtatjuk a keresés oszlopát
+
+nem változtatjuk az audit/error struktúrát
+
+A patch célja itt:
+A rendszer a 6 új kulcshoz is hozzon létre workbook-szintű Named Range-et.
+
+2. modSettingsSSOT.bas
+
+Ez a második VBA patch, de csak minimális.
+
+A Biblia szerint ebben a körben a rendszernek tudnia kell az új kulcsokat szövegként, számmal, booleanként olvasni, de még nem kell üzemi logikát futtatni rajtuk.
+
+A feltöltött modul alapján az általános olvasó API már megvan:
+
+GetCfgText
+
+GetCfgDouble
+
+GetCfgLong
+
+GetCfgBool
+
+Mivel ezek kulcsnév alapján működnek, az új kulcsokhoz önmagukban már elegendők, amint a kulcs felkerül a panelre és a Named Range létrejön.
+
+Ezért a konkrét patch terv itt:
+
+alapverzióban nem módosítjuk a publikus olvasó API-t
+
+csak akkor nyúlunk hozzá, ha van benne dokumentált/keménykódolt kulcslista, validációs lista vagy auditált “known keys” rész
+
+ha van ilyen blokk, azt a 6 új kulccsal bővítjük
+
+ha nincs ilyen blokk, akkor a fájl érintetlen marad
+
+Mit NEM csinálunk:
+
+nem vezetünk be új wrapper függvényeket, pl. GetCfgVisiblePastDays
+
+nem aktiváljuk a visible window logikát
+
+nem értelmezzük a SOFOROK_AUTO / FIXED módot üzemi szinten
+
+nem változtatunk fallback prioritáson
+
+Miért jó ez:
+Ez a legkisebb regressziós kockázatú megoldás.
+
+3. modSettingsLockAndApply.bas
+
+Ez a harmadik ellenőrzési pont, de várhatóan nem kap funkcionális patch-et.
+
+A Biblia adatfolyam-diagramja szerint a render belépési pont marad Render_Vezenyles_From_SSOT, és ebben a körben még nincs visible window vagy oszloplogika aktiválás.
+
+A jelen kör célja nem az Apply új viselkedése, hanem az, hogy az Apply után is stabil maradjon a jelenlegi render.
+
+Ezért ebben a fájlban a terv:
+
+alapból nem módosítjuk a Settings_Apply_Changes logikát
+
+nem szúrunk be új renderlépést
+
+nem hívunk új eljárást
+
+nem használunk Application.Run-t
+
+nem adunk hozzá új üzemi döntést
+
+A napló alapján ez különösen fontos: korábban a rossz névvel vagy Application.Run-nal hívott makró 1004 hibát okozott, ezt most nem nyitjuk újra.
+
+Legfeljebb mi fér bele itt:
+
+ha van explicit “known settings count” vagy audit string, azt lehet bővíteni
+
+de üzemi logika itt most nem kerül bele
+
+Összesítve: melyik fájlban mi változik
+1) Workbook / Beállítások lap
+
+Változik.
+Új 6 kulcs fizikailag bekerül a H:I:J panelbe alapértékkel és megjegyzéssel.
+
+2) modFixNamedRanges.bas
+
+Változik.
+A keys = Array(...) bővül a 6 új kulccsal.
+
+3) modSettingsSSOT.bas
+
+Valószínűleg nem változik, vagy csak akkor minimálisan, ha van benne keménykódolt kulcslista / validációs lista / auditált ismert-kulcs blokk.
+A publikus GetCfg* API-t nem bővítjük külön függvényekkel.
+
+4) modSettingsLockAndApply.bas
+
+Nem változik funkcionálisan.
+Csak ellenőrzési pont. Az Apply útvonal marad stabil, nem aktiválunk új működést.
+
+Mechanikus végrehajtási sorrend
+
+Ez legyen a pontos munkasorrend:
+
+Step 1.
+Beállítások lapon a 6 új kulcs felvétele H:I:J-be.
+
+Step 2.
+modFixNamedRanges.bas tömb bővítése a 6 új kulccsal.
+
+Step 3.
+Rebind_Config_NamedRanges_ByKey futtatása.
+
+Step 4.
+Gyors ellenőrzés a Name Managerben:
+mind a 14 cfg_* név létezik-e és az adott sor I cellájára mutat-e.
+
+Step 5.
+modSettingsSSOT.bas átnézés:
+ha van belső ismert-kulcs lista / audit / validator, azt bővítjük; ha nincs, nem nyúlunk hozzá.
+
+Step 6.
+Settings_Apply_Changes futtatás.
+
+Step 7.
+Smoke check:
+
+compile zöld
+
+Apply lefut
+
+fejléc nem tűnik el
+
+dátumtengely nem tűnik el
+
+freeze nem romlik el
+
+jelenlegi méretek nem csúsznak szét
+
+Mi lesz a patch utáni elvárt állapot
+
+A kör végére:
+
+a 6 új kulcs látszik a Beállítások lapon
+
+a 6 új kulcsnak van workbook-szintű Named Range-e
+
+a GetCfg* API tudja őket olvasni
+
+az Apply nem romlik el
+
+a render még ugyanúgy működik, mint eddig
+
+visible window / sorrejtés / sofőroszlopszámítás még továbbra sincs bekapcsolva.
+
+JAVÍTÁSI TERV — TELJES, DE KONTROLLÁLT
+Fázis 0 — SSOT célállapot lezárása
+
+Előbb rögzítjük, minek kell a végén igaznak lennie.
+
+Célállapot:
+
+lapváltás gyors
+
+nincs cirkulálás
+
+scroll csak a megengedett tartományban mozog
+
+nem ugrik vissza sem első oszlopra, sem első látható sorra
+
+fekete terület minimális vagy megszűnik
+
+a stílus ugyanaz marad, mint a stabil layout SSOT szerint
+
+egy user-akcióra legfeljebb a szükséges minimális rutin fusson
+
+Fázis 1 — Loop-stop és esemény-szétválasztás
+
+Ez a legfontosabb technikai stabilizálás.
+
+Itt a terv:
+
+1. Re-entry guard
+
+Minden olyan rutin elé, ami renderel, clampel, visible window-t állít, kell közös guard.
+
+Cél:
+
+ugyanaz a logika ne hívja vissza önmagát
+
+Activate → Render → Activate típusú lánc megszűnjön
+
+SelectionChange mellékhatások ne indítsanak új teljes futást
+
+2. Activate esemény karcsúsítása
+
+Most a fő baj az, hogy activate-nél túl sok minden fut.
+
+Cél:
+
+Activate ne csináljon teljes render-t
+
+activate csak könnyű viewport-helyreállítást csinálhat
+
+layout/freeze/oszlopszélesség/sortmagasság csak dedikált rebuild vagy init ponton fusson
+
+3. Freeze/Activate szétválasztás
+
+A freeze logikában az Activate-szerű visszahatás veszélyes.
+
+Cél:
+
+a freeze ne generáljon új lapesemény-láncot
+
+ha elkerülhetetlen, csak guard alatt futhasson
+
+Fázis 2 — Scroll és cirkulálás javítása
+
+Ez külön blokk, mert ez most nem csak teljesítmény, hanem használhatósági hiba.
+
+4. Clamp definíció pontos lezárása
+
+Most a clamp valószínűleg túl agresszív.
+
+A helyes működés:
+
+a user eljuthat a megengedett utolsó látható oszlopig
+
+de nem ugorhat át tiltott térbe
+
+ha eléri a határt, ott maradjon
+
+ne ugorjon vissza bal szélre
+
+Soroknál ugyanez:
+
+a user eljuthat az utolsó megengedett látható sorig
+
+ne ugorjon vissza a látható ablak első sorára
+
+Tehát:
+nem wrap-around kell, hanem hard stop at boundary.
+
+Ez a mostani cirkulálás valódi oka.
+
+5. ScrollArea és Selection/ActiveCell összhang
+
+Nagyon valószínű, hogy most ez történik:
+
+scrollolás vagy kijelölés elmegy a határig
+
+clamp visszateszi egy “safe” cellára
+
+ez a safe cella túl korai, ezért balra/felfelé ugrik
+
+Cél:
+
+clamp mindig a legközelebbi érvényes célra tegyen vissza
+
+ne a tartomány elejére
+
+Fázis 3 — VisibleWindow optimalizálás
+
+Ez a lassulás egyik fő forrása.
+
+6. Teljes unhide/hide megszüntetése
+
+Most ha minden alkalommal:
+
+mindent felfed
+
+utána újra elrejt
+
+az Excel ezt drágán kezeli.
+
+Cél:
+
+csak akkor frissítsünk, ha a visible window tényleg változott
+
+cache-eljük az előző állapotot
+
+csak a delta-t módosítsuk
+
+7. VisibleWindow ne triggereljen új scroll logikát
+
+A sor-elrejtés ne indítson visszaható viewport-korrekciót.
+
+Fázis 4 — Stílus és UX helyreállítás
+
+Ez külön fontos, mert te külön jelezted, hogy a stílus szétesett.
+
+8. Layout SSOT visszaállítás
+
+Ellenőrizni kell:
+
+oszlopszélességek
+
+sortmagasságok
+
+header sorok
+
+freeze pont
+
+driver blokk szélességek
+
+fekete terület oka: túl nagy scrollable zóna vagy hibás aktív tartomány
+
+9. Fekete terület UX
+
+Itt három opció van, és mindet figyelembe vesszük:
+
+A) teljesen megszüntetjük
+B) minimalizáljuk, de technikailag maradhat egy kis “puffer”
+C) elfogadjuk, ha ez kell a stabil lockhoz
+
+Én elsőre B-t ajánlom:
+
+stabilitás előbb
+
+utána finom UX
+
+Fázis 5 — Mérés után patch, nem egyszerre mindent
+
+A jó sorrend szerintem ez:
+
+Patch A — Loop-stop
+
+guard
+
+activate karcsúsítás
+
+freeze eseménymentesítés
+
+Patch B — Clamp fix
+
+hard stop, nem visszaugrás
+
+sor/oszlop boundary javítás
+
+megszűnik a “cirkulálás”
+
+Patch C — VisibleWindow perf fix
+
+delta alapú sorrejtés
+
+kevesebb redraw
+
+Patch D — Style/UX restore
+
+layout SSOT
+
+fekete terület finomhangolás
+
+Melyik opciókat vesszük figyelembe
+
+A kérésed alapján az összes érdemi javítási opciót számba véve:
+
+Opció 1 — Tűzoltás
+
+Csak guard + kisebb clamp fix.
+
+Előny:
+
+gyors
+Hátrány:
+
+stílus és UX maradhat rossz
+
+Opció 2 — Stabil technikai fix
+
+Guard + activate split + clamp javítás.
+
+Előny:
+
+cirkulálás nagy része megszűnik
+
+gyorsulás lesz
+Hátrány:
+
+VisibleWindow és stílus még maradhat félkész
+
+Opció 3 — Teljes kontrollált helyreállítás
+
+Guard + event split + clamp + visiblewindow perf + style restore.
+
+Előny:
+
+ez a helyes irány
+
+nem csak működik, hanem használható is
+Hátrány:
+
+több lépés
+
+Én most egyértelműen a 3-as opciót javaslom.
+
+Amit most rögzítenék hibalistának
+
+Activate túlterhelt
+
+Render és viewport logika nincs szétválasztva
+
+Clamp wrap-szerűen viselkedik hard-stop helyett
+
+VisibleWindow teljes újrarajzolást csinál
+
+Re-entry guard hiányzik
+
+Freeze visszahat az eventekre
+
+Stílus/layout SSOT megsérült
+
+Fekete terület UX nincs lezárva
+
+Javasolt következő lépés
+
+Most ne ugorjunk rögtön minden fájl átírására.
+
+A helyes következő lépés:
+
+előbb készítek egy kanonikus javítási tervet fájl/rutin szinten, vagyis pontosan:
+
+melyik modulhoz nyúlunk
+
+melyik rutin marad
+
+melyik rutin csak initkor fusson
+
+melyik rutin csak viewport frissítés legyen
+
+hol lesz guard
+
+hol lesz clamp hard-stop
+
+mihez nem nyúlunk, hogy a stílus ne sérüljön tovább
+
+Rendben. Akkor Opció 3 — teljes kontrollált helyreállítás szerint megyünk.
+
+És most már elég tisztán látszik a gyökérok is:
+
+Mi okozza a “cirkulálást”
+
+A mostani clamp ezt csinálja:
+
+ActiveWindow.ScrollRow = targetRow
+ActiveWindow.ScrollColumn = targetCol
+
+ahol targetRow/targetCol az ActiveCell-ből jön.
+
+Ezért amikor a határra érsz:
+
+oszlop végénél a kijelölés/clamp visszatesz egy cellára
+
+utána a viewportot is arra a cellára húzza
+
+ettől balra/felfelé “visszaugrik”
+
+Tehát amit te cirkulálásnak hívsz, az itt két részből áll:
+
+event loop / túl sok újrafutás
+
+hibás clamp UX, ami a viewportot is visszarántja
+
+A kettő együtt adja a rossz érzést.
+
+KANONIKUS JAVÍTÁSI TERV
+A. Modul-szintű célállapot
+1) ThisWorkbook.cls
+
+Most:
+
+Workbook_Open teljes render
+
+Workbook_SheetActivate is teljes render
+
+Cél:
+
+Workbook_Open maradhat teljes init/render
+
+Workbook_SheetActivate ne hívjon teljes render-t
+
+activate csak egy könnyű viewport refresh legyen
+
+Vagyis:
+
+Open = init
+
+Settings Apply = rebuild
+
+Activate = lightweight sync only
+
+2) modVezenylesRender.bas
+
+Most ez túl sok mindent csinál egyszerre:
+
+named range rebind
+
+protection
+
+layout
+
+dates
+
+freeze
+
+visible window
+
+scroll/clamp
+
+Cél:
+szétválasztjuk 3 szintre:
+
+Render_Vezenyles_Full
+
+csak ritkán:
+
+Open
+
+Settings Apply
+
+explicit rebuild
+
+Refresh_Vezenyles_Viewport
+
+gyakran:
+
+visible window
+
+scroll area
+
+clamp nélküli vagy minimál clamp
+
+Clamp_Vezenyles_ActiveCell_IfNeeded
+
+csak akkor:
+
+ha tényleg tiltott cellán áll a kijelölés
+
+Ez a legfontosabb architekturális tisztítás.
+
+3) modVezenylesFreeze.bas
+
+Most a fő baj:
+
+ws.Activate
+...
+If restoreSheet Then prevSheet.Activate
+
+Ez veszélyes, mert eventláncot generálhat.
+
+Cél:
+
+freeze ne fusson activate-nél
+
+freeze csak full render alatt fusson
+
+és legyen globális guard körülötte
+
+A freeze nem viewport logika, hanem layout/init logika.
+
+4) modVisibleWindow.bas
+
+Most a fő baj:
+
+teljes tartomány unhide
+
+utána újra hide
+
+minden alkalommal
+
+Cél:
+
+legyen cache
+
+csak akkor fusson, ha a window tényleg változott
+
+lehetőleg delta-alapú frissítés legyen
+
+minimum: ha ugyanaz a StartRow/EndRow, akkor Exit Sub
+
+Ez nagy gyorsulást ad.
+
+5) modVezenylesLayout.bas
+
+Itt két külön probléma van.
+
+a) layout jó helyen van, de rossz gyakorisággal fut
+
+A layout csak full renderben fusson.
+
+b) Apply_Vezenyles_ScrollArea_And_Clamp túl agresszív
+
+Most:
+
+beállítja a ScrollArea-t
+
+aktív cellát clampeli
+
+viewportot is átírja
+
+Cél:
+ezt kettéválasztjuk:
+
+Apply_Vezenyles_ScrollArea
+
+csak ScrollArea
+
+Clamp_Vezenyles_Selection
+
+csak aktív cella korrekció, ha muszáj
+
+Normalize_Vezenyles_Viewport
+
+óvatos viewport korrekció, de nem wrap-szerűen
+
+A legfontosabb szabály:
+hard stop, nincs visszaugrás az elejére.
+
+B. Viselkedési célok
+1) Lapváltás
+
+Most:
+
+teljes rebuild
+
+Cél:
+
+lapváltáskor ne fusson layout/dates/freeze
+
+csak viewport sync fusson
+
+ettől gyors lesz
+
+2) Oszlopvégi viselkedés
+
+Most:
+
+végénél visszaugrik balra
+
+Cél:
+
+az utolsó engedélyezett oszlopnál megáll
+
+nem ugrik vissza az első oszlopra
+
+3) Sorvégi viselkedés
+
+Most:
+
+visszaugrik az első látható sorra
+
+Cél:
+
+az utolsó megengedett soron megáll
+
+nem ugrik a visible window elejére
+
+4) Fekete terület
+
+Most:
+
+UX-ben zavaró
+
+Cél:
+
+első körben minimalizáljuk
+
+a ScrollArea és viewport normalizálás után újramérjük
+
+valószínűleg részben magától javul
+
+5) Stílus
+
+Cél:
+
+a layout csak full renderben fusson
+
+így megszűnik a “szétesik / újrarakja / ugrál” érzés
+
+C. Konkrét hibák, amiket javítunk
+1. Re-entry guard hiány
+
+Bevezetünk egy közös globális guardot.
+
+Cél:
+
+nested render tiltás
+
+nested viewport refresh tiltás
+
+clamp loop tiltás
+
+2. Activate túlterhelt
+
+Workbook_SheetActivate nem hívhat full render-t.
+
+3. Freeze rossz helyen fut
+
+Freeze csak full render alatt.
+
+4. VisibleWindow túl drága
+
+Cache + skip unchanged window.
+
+5. Clamp hibás
+
+Nem a viewport elejére húzunk vissza, hanem a legközelebbi érvényes cellára.
+
+6. ScrollRow / ScrollColumn túl agresszív
+
+Ezeket vagy kivesszük, vagy csak nagyon kontrollált esetben hagyjuk meg.
+
+Ez kulcspont, mert a mostani “cirkulálás” nagy része ebből jön.
+
+D. Patch sorrend
+Patch 1 — architektúra stabilizálás
+
+Érintett fájlok:
+
+ThisWorkbook.cls
+
+modVezenylesRender.bas
+
+Tartalom:
+
+full render vs viewport refresh szétválasztás
+
+activate karcsúsítás
+
+globális guard
+
+Patch 2 — clamp és scroll UX javítás
+
+Érintett fájl:
+
+modVezenylesLayout.bas
+
+Tartalom:
+
+ScrollArea külön
+
+clamp külön
+
+nincs balra/felfelé wrap
+
+nincs “első sor / első oszlop” visszaugrás
+
+Patch 3 — visible window performance fix
+
+Érintett fájl:
+
+modVisibleWindow.bas
+
+Tartalom:
+
+unchanged window skip
+
+kevesebb hide/unhide
+
+stabilabb viewport
+
+Patch 4 — style/UX finomítás
+
+Érintett fájlok:
+
+modVezenylesLayout.bas
+
+szükség esetén modVezenylesFreeze.bas
+
+Tartalom:
+
+fekete terület finomhangolás
+
+stílus visszaellenőrzés
+
+freeze/layout végső tisztítás
+
+E. Amit nem csinálunk
+
+nem írjuk újra az egész rendszert
+
+nem nyúlunk egyszerre minden modulhoz
+
+nem keverjük össze a layout és viewport logikát
+
+nem hagyjuk bent a mostani agresszív ScrollRow/ScrollColumn viselkedést változatlanul
+
+[2026-03-26 | EDGE-STOP / VIEWPORT STABILIZÁLÁS – következő kör]
+- A wrap helyett hard edge-stop működik, compile OK, alap viselkedés jó.
+- Következő cél: SelectionChange finomítás minimál patch-csel.
+- Elvárt viselkedés:
+  - ne ugorjon új sorra / új oszlopra,
+  - a szélen álljon meg,
+  - felesleges ismétlődő logok csökkenjenek,
+  - fölösleges visszaselektálás megszűnjön.
+- Biblia-kompatibilis fókusz:
+  1) mérés,
+  2) Worksheet_SelectionChange célzott tisztítás,
+  3) hétvégi színezés SSOT szerinti visszaállítása,
+  4) stílus/layout regressziók kerülése.
+- Fontos: visible window / viewport körben nem nyitunk új üzemi logikát, csak stabilizálunk és regressziót javítunk.
+- Következő belépő fájl: Munka1 teljes aktuális kód.
+- Társ-érintett fájl(ok) méréshez: a dátum/hétvége-színezést végző modul jelenlegi verziója.
+
+[2026-03-27 | EDGE-STOP stabilizálás – állapot]
+- Wrap megszűnt, hard edge-stop működik.
+- Hétvégi színezés visszaállítva SSOT irányba, a Szinek lap alapján, csak a Vezénylés dátumoszlopára.
+- Render/freeze pipeline stabil.
+- Nyitott finomítás: Munka1.Worksheet_SelectionChange duplikált SEL_LOCK zaj csökkentése re-entry guarddal.
+- Viewport oldalon még látszik egy aktiváláskori ScrollRow korrekció, de ez jelenleg másodlagos a SelectionChange zajhoz képest.
+
+[2026-03-27 | EDGE-STOP / SelectionChange stabilizálás]
+- Munka1.Worksheet_SelectionChange minimál patch elkészült.
+- A duplikált SEL_LOCK logok megszűntek.
+- Egy edge-stop user-akcióra egyetlen SEL_LOCK esemény marad.
+- Wrap továbbra is tiltva, szélen megállás működik.
+- Hétvégi színezés visszaállítva, csak a Vezénylés dátumoszlopára.
+- Render / freeze pipeline stabil.
+- Nyitott maradék: aktiváláskor a viewport még ScrollRow=3-ról korrigálódik a látható ablak elejére (pl. 78), ezt a következő körben kell finomítani.
+
+[2026-03-27 | Stabil baseline lezárva]
+- Compile hiba nincs.
+- Render pipeline stabilan lefut.
+- Dátumtengely, fejléc, freeze működik.
+- Edge-stop stabil, duplikált SEL_LOCK zaj megszüntetve.
+- Hétvégi színezés visszaállítva a Színek SSOT alapján.
+- Driver identity alapréteg bekerült, fejléc SSOT-ból tölthető.
+- Nyitott következő érdemi fejlesztés: oszlopidentitás és teljes sofőroszlop-mozgatás.
+[2026-03-27 | Sofőroszlop swap engine elkészült]
+- A Sofőrök lapon történő sorszámcsere már nem csak a SoforLista sorrendjét módosítja.
+- A Vezénylés megfelelő sofőroszlopai is teljes oszlopként cserélődnek.
+- Audit log igazolja a folyamatot:
+  - SOFOR_SWAP_BEGIN / END
+  - VEZ_DRIVER_COL_SWAP_BEGIN / END
+- Stabil baseline megmaradt: render, freeze, edge-stop, hétvége színezés rendben.
+- Következő érdemi fejlesztés: a swap alapú csere helyett valódi insert/move engine, hogy ne csak két pozíció cseréje, hanem kanonikus beszúrásos átrendezés történjen.
+
+[2026-04-07 | Valódi driver move engine működik]
+- A Sofőrök lapon végzett sorszám-módosítás már nem swap, hanem move/insert jellegű átrendezés.
+- A Vezénylés megfelelő teljes sofőroszlopai is az új helyre mozognak.
+- Audit igazolja:
+  - SOFOR_MOVE_BEGIN / END
+  - VEZ_DRIVER_COL_MOVE_BEGIN / END
+- A stabil baseline megmaradt: render, freeze, edge-stop, hétvége-színezés rendben.
+- Viewport oldal időnként még ScrollRow korrekcióval stabilizál, de ez jelenleg nem blokkolja a működést.
+- Következő érdemi fejlesztés: eltérésfelismerés (Sofőrök SSOT vs Vezénylés tényleges oszloprend összevetés).
+
+2026-04-07 — SSOT runtime integritásmérés alap lerakva
+
+- Elkészült a kézi futtatású SSOT integritás-ellenőrzés:
+  - SSOT vs Vezénylés fejléc row1
+  - SSOT vs Vezénylés fejléc row2
+- A row2 ellenőrzésnél lezártuk, hogy az elválasztó-forma nem üzleti eltérés:
+  - SSOT oldalon pl. "vontato + potkocsi"
+  - Vezénylés oldalon pl. "vontato / potkocsi"
+  - Az összehasonlítás ezért normalizált járműpár alapon történik.
+- Elkészült a runtime snapshot mérő:
+  - Integrity_Runtime_Snapshot
+- A hash rutin első verziója Overflow hibát adott, ez javítva lett.
+- Aktuális mérési eredmény: PASS
+  - ssotCount=18
+  - headerCount=18
+  - row1MismatchCount=0
+  - row2MismatchCount=0
+- Aktuális hash egyezés:
+  - row1Hash=769392580/769392580
+  - row2Hash=1384652041/1384652041
+- Következő lépés:
+  - meghatározni a kanonikus MOVE-végpontot
+  - a mérést első körben csak oda bekötni, audit-spam nélkül
+
+2026-04-07 — Runtime SSOT integritásmérés: bekötési pont azonosítva
+
+- Átnézés megtörtént a feltöltött VBA fájlok alapján.
+- A sofőrsorrend-módosítás kanonikus belépési pontja:
+  - Munka2.Worksheet_Change
+- Itt történik egyben:
+  - a SoforLista valódi MOVE (insert/shift)
+  - az 1..N újraszámozás
+  - a SoforLista visszaírása
+  - a Vezénylés teljes sofőroszlop MOVE
+- A Vezénylés oldali oszlopmozgatás külön modulban fut:
+  - modVezenylesColumnMove.Move_Vezenyles_DriverColumn_ByRank
+- Az első runtime integritásmérést nem viewport / activate / selectionchange eseménybe kell kötni,
+  hanem a teljes MOVE-folyamat legvégére.
+- Elsődleges bekötési pont:
+  - Munka2.Worksheet_Change
+  - a Move_Vezenyles_DriverColumn_ByRank hívás és a SOFOR_MOVE_END audit után
+- Indok:
+  - ez a teljes SSOT -> Vezénylés tranzakció vége
+  - itt már a Sofőrök és a Vezénylés is kész állapotban van
+  - minimális az audit-spam és kicsi a regressziós kockázat
+- Másodlagos technikai végpont létezik:
+  - modVezenylesColumnMove.Move_Vezenyles_DriverColumn_ByRank vége
+  - de első körben nem oda kötjük, hanem a felsőbb orchestration végére
+
+2026-04-07 — Runtime SSOT integritásmérés bekötve a MOVE végpontra
+
+- A runtime SSOT integritásmérés első éles bekötése elkészült.
+- Bekötési pont:
+  - Munka2.Worksheet_Change
+  - SOFOR_MOVE_END után
+  - CleanExit előtt
+- A mérés így most közvetlenül a teljes MOVE-tranzakció végén fut:
+  - SoforLista valódi MOVE
+  - újraszámozás
+  - SoforLista visszaírás
+  - Vezénylés sofőroszlop MOVE
+  - runtime integritás snapshot
+- Futtatott teszt:
+  - move 1 -> 2
+  - move 2 -> 1
+- Eredmény:
+  - mindkét irányban PASS
+  - INTEGRITY_SNAPSHOT_OK rendben megjelent
+  - row1MismatchCount=0
+  - row2MismatchCount=0
+- Megerősített állapot:
+  - működés közben is fennmarad az SSOT konzisztencia
+  - a Sofőrök SSOT és a Vezénylés fejléc / járműsor egyezése automatikusan mérve van minden MOVE után
+- Következő lehetséges lépés:
+  - a runtime audit finomítása (zajcsökkentés / stage logok ritkítása)
+  - vagy before/after delta mérés bevezetése ugyanitt
+
+2026-04-07 — Runtime SSOT integritásmérés bekötve a MOVE végpontra
+
+- A runtime SSOT integritásmérés első éles bekötése elkészült.
+- Bekötési pont:
+  - Munka2.Worksheet_Change
+  - SOFOR_MOVE_END után
+  - CleanExit előtt
+- A mérés így most közvetlenül a teljes MOVE-tranzakció végén fut:
+  - SoforLista valódi MOVE
+  - újraszámozás
+  - SoforLista visszaírás
+  - Vezénylés sofőroszlop MOVE
+  - runtime integritás snapshot
+- Futtatott teszt:
+  - move 1 -> 2
+  - move 2 -> 1
+- Eredmény:
+  - mindkét irányban PASS
+  - INTEGRITY_SNAPSHOT_OK rendben megjelent
+  - row1MismatchCount=0
+  - row2MismatchCount=0
+- Megerősített állapot:
+  - működés közben is fennmarad az SSOT konzisztencia
+  - a Sofőrök SSOT és a Vezénylés fejléc / járműsor egyezése automatikusan mérve van minden MOVE után
+- Következő lehetséges lépés:
+  - a runtime audit finomítása (zajcsökkentés / stage logok ritkítása)
+  - vagy before/after delta mérés bevezetése ugyanitt
+
+2026-04-07 — MOVE időmérés: első hotspot azonosítva
+
+- A MOVE lánc első időmérése lefutott.
+- Eredmény: a SoforLista oldal nem szűk keresztmetszet.
+  - read / array move / renumber ~ 0 ms
+  - writeBack ~ 15,6 ms
+- A fő lassulás a Vezénylés oldalon van:
+  - Move_Vezenyles_DriverColumn_ByRank teljes ideje: ~2,6 s ... ~10,5 s
+- A belső bontás szerint:
+  - moveRangeMs a fő hotspot
+  - applyLayoutMs stabilan ~1265,6 ms
+  - tempCleanupMs ~70–80 ms
+- Következtetés:
+  - elsődleges hotspot: Move_ColumnRange_UsingTemp / oszlopmozgatás
+  - másodlagos, stabil költség: Apply_Vezenyles_Layout_From_SSOT
+- Következő lépés:
+  - a Move_ColumnRange_UsingTemp további bontott időmérése
+  - source->temp / shift loop / temp->target / CutCopyMode külön mérve
+
+[2026-04-07 | LOCK — SORSZÁM MŰKÖDÉS]
+
+A sorszam mező módosítása MOVE / INSERT logikával működik.
+
+- a sor új pozícióba kerül
+- a köztes sorok eltolódnak
+- teljes újraszámozás történik (1..N)
+- nem történik swap (csere)
+
+Ez a kanonikus működés.
+
+2026-04-07 — moveRange hotspot optimalizálás / 1. lépés
+
+- A belső mérés alapján a fő hotspot a Move_ColumnRange_UsingTemp volt.
+- Különösen drága volt:
+  - srcToTempMs
+  - shiftLoopMs
+- Első optimalizálási lépés:
+  - a köztes oszlopok egyenkénti másolásos shift loopját megszüntetjük
+  - helyette egyetlen többoszlopos blokk-másolással toljuk el a köztes tartományt
+- Cél:
+  - a shiftLoopMs jelentős csökkentése
+  - a működés és SSOT szemantika változtatása nélkül
+
+2026-04-07 — STOP: moveRange optimalizálási irány hibás
+
+- A blokkos / belső oszlopmozgatás-optimalizálási próbák nem hoztak javulást.
+- A rendszer viselkedése továbbra is MOVE / INSERT, nem SWAP.
+- A teljesítmény súlyosan romlott:
+  - VEZ_DRIVER_COL_MOVE_INNER_TIMING:
+    - srcToTempMs=37585,9
+    - shiftLoopMs=335140,6
+    - tempToTargetMs=2242,2
+    - totalMs=374968,8
+  - VEZ_DRIVER_COL_MOVE_TIMING totalMs=377437,5
+  - SOFOR_MOVE_TIMING totalMs=378328,1
+- Következtetés:
+  - a jelenlegi moveRange optimalizálási irány hibás
+  - azonnali rollback szükséges a legutóbbi használható állapotra
+- Következő lépés:
+  - modVezenylesColumnMove visszaállítása a legutóbbi stabil verzióra
+  - utána külön kezelni:
+    1) SWAP vs MOVE szemantika
+    2) teljesítmény-optimalizálás új, mérésalapú irányban
+
+2026-04-20 — SAVE performance mérés (Excel lassú mentés)
+
+Állapot:
+- Workbook_Open ideiglenesen letiltva (Exit Sub) stabil debug miatt
+- Render + viewport ciklus stabilizálva (busy flag + dupla hívás védelem)
+- Audit rendszer stabil, top-insert kikapcsolva (performance okból)
+
+Mérés:
+- SAVE_BEGIN → SAVE_END: ~37.3 sec
+- CalcMode=Automatic, CalcState=Done → NEM recalculation a szűk keresztmetszet
+- EnableEvents=True → események nem blokkolnak
+- Következtetés: a lassulás a workbook mentési footprintben van
+
+Következő lépés:
+- Workbook footprint mérés (UsedRange, Shapes, Names, Styles)
+- Cél: melyik lap / objektum fújja fel a mentést
+
+
+
+
+
+[2026-04-21 | ROOT-CAUSE LEZÁRÁS — rejtett Graphic objektumok]
+
+Kiinduló tünet:
+- A Vezénylés lapon kb. 40204 Shape objektum volt.
+- SAVE_BEGIN -> SAVE_END korábbi mérés: kb. 37.3 sec.
+- Excel/VBE több ponton "Nem válaszol" állapotba került.
+
+Export/VBA állapot:
+- A jelenlegi exportban aktív .Copy / PasteSpecial / Duplicate alapú szaporító kód nem maradt.
+- A modColumnMove.Move_Vezenyles_DriverColumn_ByRank jelenleg szándékosan blokkolt.
+- A modVezenylesColumnMove.bas exportált modul üres (csak Option Explicit).
+- A Sofőrök oldali Munka2.Worksheet_Change továbbra is a Move_Vezenyles_DriverColumn_ByRank belépési pontot hívná sorrendmódosításkor, de a hívott rutin blokkol.
+
+Workbook/OpenXML mérés:
+- A Vezénylés lap: xl/worksheets/sheet1.xml.
+- A hozzá tartozó rajzréteg: xl/drawings/drawing1.xml.
+- Tisztítás előtt drawing1.xml mérete kb. 52 MB volt.
+- drawing1.xml tartalma:
+  - 40204 drawing anchor
+  - ebből 40200 ugyanarra az image2.png / rId4 képre mutató rejtett Graphic tömeg
+  - 4 valódi maradék objektum
+- Top anchor klaszterek között erős jel volt:
+  - B1/B2/C1/C2/D2
+  - AC1/AC2
+- Az AC oszlop a korábbi temp oszlopos driver-oszlopmozgatás miatt különösen gyanús.
+
+Excel/VBA diagnosztikai mérés a tisztított fájlban:
+- SHAPE_PKG_SUMMARY:
+  - Shapes=4
+  - Graphics=0
+  - HiddenGraphics=0
+  - Pictures=2
+  - OtherShapes=4
+- A felhasználói visszajelzés szerint a tisztított fájl gyorsan megnyílt, a mentés is gyors.
+
+Beavatkozás:
+- Nem Excel/VBA objektummodellen keresztül történt a törlés, mert 40200 shape egyenkénti kezelése túl lassú és instabil.
+- OpenXML fájlszintű tisztítás történt egy másolaton.
+- Eredeti fájl nem lett felülírva.
+- Létrejött tisztított tesztmásolat:
+  - Vezénylés_Stabil_2026.02.26_OPENXML_CLEAN_TEST.xlsm
+- Tisztítás eredménye:
+  - AnchorsBefore=40204
+  - RemovedRid4Anchors=40200
+  - AnchorsAfter=4
+  - drawing1.xml kb. 52 MB -> kb. 7 KB
+
+Döntés / LOCK:
+- A lassú mentés és megnyitás bizonyított fő oka a Vezénylés lap drawing rétegében felhalmozódott 40200 rejtett Graphic objektum volt.
+- A tisztított munkafüzet tekintendő következő stabil alapnak, ha a felhasználói vizuális és működési smoke test rendben van.
+- A régi Vezénylés_Stabil_2026.02.26.xlsm maradjon backup / történeti állapot.
+- Az oszlopmozgatás továbbra is tiltva marad, amíg nincs copy-mentes, objektumszaporodás-biztos megoldás.
+
+Takarítás:
+- Az ideiglenes exportált segédmodulok eltávolítva a vba_export mappából:
+  - modVezenylesShapeDiagPackage.bas
+  - modVezenylesHiddenGraphicCleanup.bas
+- Ha ezek a modulok a tisztított workbook VBA projektjébe importálva maradtak, később kézzel eltávolíthatók a VBE-ben, de működési szempontból nem részei a kanonikus rendszernek.
+
+Következő lépés:
+- Új stabil alap rögzítése a tisztított munkafüzetből.
+- Utána: oszlopmozgatás újratervezése copy/paste nélkül.
+- Cél: sofőrsorrend módosítás úgy, hogy sem Range.Copy, sem Paste, sem temp oszlopos shape-szaporító művelet ne legyen benne.
+
+[2026-04-21 | STABIL ALAP RÖGZÍTÉS — CLEAN workbook]
+
+Felhasználói visszajelzés:
+- A tisztított munkafüzet gyorsan megnyílt.
+- A mentés gyors.
+
+Fájlszintű rendrakás:
+- A tesztnevű tisztított fájl végleges stabil névre mentve:
+  - Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+- A korábbi tesztnevű példány törölve:
+  - Vezénylés_Stabil_2026.02.26_OPENXML_CLEAN_TEST.xlsm
+- Az eredeti fájl megmaradt backup / történeti állapotként:
+  - Vezénylés_Stabil_2026.02.26.xlsm
+- Excel lock fájl nincs jelen.
+
+Ideiglenes diagnosztikai takarítás:
+- A DiagShapePackage ideiglenes munkalap eltávolítva a végleges CLEAN workbookból.
+- A vba_export mappából törölve maradtak az ideiglenes segédmodulok:
+  - modVezenylesShapeDiagPackage.bas
+  - modVezenylesHiddenGraphicCleanup.bas
+- A vba_export.zip újracsomagolva a jelenlegi vba_export mappa alapján.
+
+Végső ellenőrzés a CLEAN workbookon:
+- xl/drawings/drawing1.xml:
+  - Length=7053 byte
+  - CompressedLength=1507 byte
+  - Anchors=4
+  - Pics=4
+- Workbook laplista:
+  - Vezénylés
+  - Sofőrök
+  - Színek
+  - Fuvarok
+  - Eseménynapló
+  - Beállítások
+  - Diag
+  - DiagGraphics
+  - DiagGraphicOrigin
+- DiagShapePackage nincs a végleges workbookban.
+
+Aktuális kanonikus munkafüzet:
+- Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+
+Következő fejlesztési fókusz:
+- Copy-mentes sofőroszlop-sorrend kezelés megtervezése és implementálása.
+- Az oszlopmozgatás addig tiltva marad.
+
+[2026-04-21 | VBA EXPORT SZINKRON — CLEAN workbook]
+
+Ellenőrzési cél:
+- Meg kellett erősíteni, hogy a vba_export.zip, a vba_export mappa és a CLEAN workbook tényleges VBA tartalma egyezik-e.
+
+Zip vs mappa:
+- vba_export fájlok száma: 33
+- vba_export.zip fájlok száma: 33
+- SHA256 tartalmi egyezés: True
+
+Első workbook vs mappa összevetés:
+- A CLEAN workbook exportja először nem egyezett.
+- Eltérések:
+  - Module1.bas csak a workbookban volt; ez az ideiglenes Hidden Graphic cleanup modul volt.
+  - modVezenylesShapeDiagPackage.bas csak a workbookban volt; ez az ideiglenes shape diagnosztikai modul volt.
+  - modVezenylesColumnMove.bas csak a vba_export mappában volt; ez az üres, kanonikus placeholder modul.
+
+Javítás Excel COM-on keresztül:
+- A CLEAN workbook VBA projektjéből eltávolítva:
+  - Module1
+  - modVezenylesShapeDiagPackage
+- A CLEAN workbook VBA projektjébe visszaimportálva:
+  - modVezenylesColumnMove.bas
+- A DiagShapePackage ideiglenes munkalap Excelen keresztül törölve és a workbook mentve.
+
+Végső összevetés:
+- vba_export mappa: 33 fájl
+- CLEAN workbook export: 33 fájl
+- SHA256 tartalmi egyezés: True
+
+Takarítás:
+- _vba_export_from_clean_compare ideiglenes összehasonlító mappa törölve.
+
+Kanonikus állapot:
+- Vezénylés_Stabil_2026.04.21_CLEAN.xlsm VBA tartalma megegyezik a vba_export mappa tartalmával.
+- vba_export.zip megegyezik a vba_export mappa tartalmával.
+
+[2026-04-21 | PROJEKT TAKARÍTÁS — csak üzemi tartalom marad]
+
+Felhasználói döntés:
+- Nem tartunk külön vba_export mappát és vba_export.zip fájlt.
+- A projekt kanonikus forrása innentől a CLEAN workbook + a két dokumentációs fájl.
+- Ha engedély kell, azt magyar nyelven kell kérni.
+
+Munkafüzet takarítás:
+- A Vezénylés_Stabil_2026.04.21_CLEAN.xlsm Excelen keresztül megtisztítva.
+- Eltávolított ideiglenes / mérési munkalapok:
+  - Diag
+  - DiagGraphics
+  - DiagGraphicOrigin
+  - DiagShapePackage, ha jelen volt
+  - DiagHiddenGraphicCleanup, ha jelen volt
+- Megmaradt üzemi munkalapok:
+  - Vezénylés
+  - Sofőrök
+  - Színek
+  - Fuvarok
+  - Eseménynapló
+  - Beállítások
+
+VBA takarítás:
+- Eltávolított ideiglenes / mérési modulok:
+  - Immediate
+  - modDiagComments
+  - modDiagShapes
+  - modDiagVbaSave
+  - modGraphicLocator
+  - modGraphicOriginDiag
+  - modSaveDiag
+  - modShapeCleanupTest
+  - modSSOTIntegrityMeasure
+  - modVezenylesColumnMove
+- Megmaradt üzemi VBA komponensek száma: 20.
+- Megmaradt fő modulok:
+  - modAudit
+  - modColumnMove
+  - modFixNamedRanges
+  - modHeaderLock
+  - modSettingsLockAndApply
+  - modSettingsSSOT
+  - modSSOT
+  - modSSOTIntegrityRuntime
+  - modVezenylesDates
+  - modVezenylesFreeze
+  - modVezenylesLayout
+  - modVezenylesRender
+  - modVisibleWindow
+  - ThisWorkbook
+  - Munka1..Munka6 code-behind
+
+Mappaszintű takarítás:
+- Törölve:
+  - vba_export mappa
+  - vba_export.zip
+  - projektleírás.txt
+  - ideiglenes COM export ellenőrző mappa
+- Megmaradt:
+  - Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+  - Vezénylés_Stabil_2026.02.26.xlsm backup / történeti állapot
+  - HOL TARTUNK — VEZÉNYLÉS RENDSZER (napló).txt
+  - KANONIKUS BIBLIA — VEZÉNYLÉS RENDSZER (SSOT - LOCK).txt
+
+Végső ellenőrzött állapot:
+- CLEAN workbook lapok száma: 6
+- CLEAN workbook VBA komponensek száma: 20
+- Vezénylés drawing réteg:
+  - Anchors=4
+  - Pics=4
+- CLEAN workbook mérete jelentősen csökkent a diagnosztikai lapok és modulok eltávolítása után.
+
+Kanonikus folytatás:
+- Továbbfejlesztés alapja:
+  - Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+  - HOL TARTUNK napló
+  - KANONIKUS BIBLIA
+- Következő fókusz változatlan:
+  - copy-mentes sofőroszlop-sorrend kezelés.
+  - oszlopmozgatás addig tiltva marad.
+

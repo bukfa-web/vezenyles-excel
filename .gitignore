@@ -1,0 +1,13 @@
+# Local / historical backups
+Vezénylés_Stabil_2026.02.26.xlsm
+
+# Excel lock/temp files
+~$*
+*.tmp
+
+# One-off diagnostic/export folders
+vba_export/
+vba_export.zip
+_tmp*/
+_vba_export*/
+

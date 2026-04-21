@@ -1,0 +1,7654 @@
+1) KANONIKUS BIBLIA — VEZÉNYLÉS RENDSZER (SSOT / LOCK)
+
+Állapot: tervezés rögzítve (LOCK), implementáció ez alapján, mechanikus lépésekben.
+
+1. Cél és alapelvek
+1.1. Cél
+
+Stabil, többfelhasználós (OneDrive) Excel-alapú „Vezénylés” rendszer, ahol:
+
+SSOT (Single Source of Truth) egyértelmű.
+
+nincs duplikált, átfedő logika (nincs „tűzoltás” / improvizáció),
+
+a kritikus részek LOCK-oltak (nem szerkeszthető kézzel),
+
+kézi munka ott megengedett, ahol üzletileg kell (fuvar cellák, kézi színezés),
+
+determinisztikusan visszaálló layout (anti-szétcsúszás).
+
+1.2. Projekt jelleg (feltételezett alap)
+
+Belső használat.
+
+2–3 user.
+
+Hosszú távon várható bővülés (sablon+napló+színezés+jogosultság jelleg).
+
+Következmény: inkább stabilitás és determinisztika, mint „szép” design-rugalmasság.
+
+2. SSOT definíciók (mi az egyetlen igazságforrás)
+2.1. Sofőrök SSOT
+
+SSOT: Sofőrök lap SoforLista (ListObject) táblázat.
+
+A Vezénylés fejléc és sofőr-oszlop mapping mindig ebből él.
+
+Kanonikus oszlopok (sorrend):
+
+sorszam
+
+sofor
+
+vontato
+
+potkocsi
+
+Ha később bővül, a fenti 4 oszlop kanonikus marad (nem átnevezhető, nem cserélhető fel).
+
+2.2. Méretek SSOT
+
+SSOT: Beállítások lap kulcsok. Kanonikus kulcsok:
+
+driver_col_px
+
+header_row_px
+
+data_row_px
+
+KIEGESZITES (2026-03-04):
+- Freeze beallitas SSOT: Beallitasok lapon a cfg_freeze_enabled es cfg_freeze_cell kulcsok (H oszlop kulcs, I oszlop ertek).
+- Legacy freeze forras (I10=enabled, I11=cell) csak atmeneti/kompatibilitas; ha a cfg_* mar elerheto, a kodnak azt kell preferalnia.
+- Meres kotelezo: ApplyFreezeFromSettings forrasai (cfg vs legacy) ne keveredjenek; auditban mindig logoljuk, melyik forrasbol olvasott.
+
+2.3. Színek SSOT
+
+SSOT: Színek lap paletta.
+
+A paletta tartalma kanonikus.
+
+A „hivatalos” színezés palettából történik.
+
+2.4. Fuvar sablon SSOT
+
+SSOT: Sablonok lap / táblázat (pl. Sablonok ListObject). Kanonikus mezők (minimum):
+
+nev
+
+utvonal
+
+default_megjegyzes
+
+tipus (kötelező/extra)
+
+2.5. Audit / eseménynapló SSOT
+
+SSOT: Eseménynapló lap táblázat. Kanonikus mezők:
+
+ts
+
+user
+
+sheet
+
+action
+
+target
+
+details
+
+3. LOCK szabályok
+3.1. Sofőrök lap — szabályok (LOCK)
+
+SoforLista táblázat az egyetlen forrás (SSOT).
+
+Sorszám (sorszam) szabály:
+
+mindig 1..N folytonos,
+
+egyedi,
+
+kézi átírás = swap mód (csere a megcélzott sorszámmal),
+
+duplikált állapot nem maradhat fenn,
+
+nincs „manuális rendezés” gomb,
+
+a fejléc a sorrendből él (a sorszám definiálja a sorrendet).
+
+3.2. Fejléc — szabályok (LOCK)
+
+A Vezénylés fejléc:
+
+2 sor magas,
+
+kézzel nem szerkeszthető,
+
+formula alapú (SoforLista-ból jön),
+
+1 oszlop = 1 sofőr,
+
+felső sor: név,
+
+alsó sor: vontató + pótkocsi (egy cellában).
+
+Fejléc szín: fix (kanonikus).
+
+3.3. Méretek — szabályok (LOCK)
+
+A layout paraméterezés pixel alapú.
+
+A Beállítások az egyetlen hely, ahol a kinézet módosítható.
+
+Multi-user stabilitás fontosabb, mint design rugalmasság.
+
+3.4. Színezés — szabályok (LOCK)
+
+Paletta: csak a Színek lap.
+
+Kézi színezés engedett, de a kanonikus folyamat palettából történik.
+
+Fejléc szín: fix, nem user-függő.
+
+3.5. Fuvar rendszer — elv
+
+Napi sablon logika.
+
+Havi előregenerálás.
+
+Kézi módosítás engedett.
+
+Nincs automatikus törlés (a rendszer nem „takarít ki” user munkát).
+
+4. Dátum modell (LOCK döntés — itt rögzítjük)
+
+Kanonikus alap: havi előregenerálás + meglévő napok nem írhatók felül automatikusan.
+
+Szabály:
+
+A dátum oszlop (A) nem szerkeszthető kézzel.
+
+„Múlt nem írható felül” = generált napok tartalma nem törlődik automatikusan.
+
+5. Architektúra — modulok és felelősségi körök
+5.1. Modul-szabály: 1 felelősség = 1 modul
+
+Nincs duplikált „ApplyLayout” több helyen.
+
+Nincs dátum-logika szétszórva.
+
+Diagnosztika csak diagnosztika.
+
+5.2. Kanonikus modulok
+modSSOT
+
+SSOT objektumok elérése (ListObject-ek, beállítás kulcsok, paletta, napló).
+
+Név- és oszlopellenőrzés (pl. SoforLista létezik, kötelező oszlopok megvannak).
+
+modDrivers
+
+SoforLista sorszám-szabályok: 1..N, egyediség, swap.
+
+Eseménykezelés: sorszám módosítás → swap + konszolidáció.
+
+Nem nyúl layout-hoz.
+
+modHeader
+
+Fejléc formula/alapú mapping életben tartása.
+
+Fejléc tartomány védelme (Locked + Protect UserInterfaceOnly).
+
+Fejléc szín fix beállítása.
+
+modLayout
+
+Beállításokból layout alkalmazása:
+
+fejléc 1–2 sor magasság
+
+sofőr oszlopok szélessége (B..B+N-1)
+
+adatsor standard magasság
+
+Anti-szétcsúszás: Workbook_Open + Worksheet_Activate(Vezénylés) → ApplyLayout
+
+modColors
+
+Paletta UI (Színek lap): szín kiválasztás, kijelölt cellák festése.
+
+Opcionális ellenőrzés: nem-palettás színek figyelmeztetése.
+
+modTemplates
+
+Havi generálás:
+
+napblokkok létrehozása a kiválasztott hónapra
+
+kötelező fuvarok automatikus beírása
+
+extra fuvar: Data Validation list sablonokból
+
+Nem töröl automatikusan meglévő tartalmat.
+
+modAudit
+
+Eseménynapló írás:
+
+sofőr swap
+
+header refresh
+
+layout apply (system event)
+
+hónap generálás
+
+modDiag
+
+Diagnosztika / export:
+
+modul lista
+
+named range lista (ha van)
+
+fejléc tartomány és N mérések
+
+Semmi üzleti logika.
+
+5.3. Események (kanonikus belépési pontok)
+
+Workbook_Open:
+
+SSOT check
+
+Protect + UserInterfaceOnly beállítás
+
+ApplyLayout
+
+(opcionális) HeaderRefresh
+
+Worksheet_Activate (csak Vezénylés):
+
+ApplyLayout
+
+Worksheet_Change (Sofőrök, SoforLista):
+
+sorszám swap + konszolidáció + audit
+
+6. Védelem (Protect) — kanonikus szabály
+
+Fejléc tartomány: Locked=True
+
+Vezénylés lap: Protect úgy, hogy user ne írjon a fejlécbe, de VBA működjön.
+
+UserInterfaceOnly = True minden megnyitáskor újra beállítandó.
+
+7. „Nincs cellacímhez kötés” elv (gyakorlati szabály)
+
+Kritikus tartományok kulcs alapján:
+
+SoforLista listobject + oszlopnevek
+
+Beállítások kulcsok
+
+A Vezénylés fejléc tartományt mérés után rögzítjük (de N függvényében számoljuk).
+
+8. Kanonikus fejlesztési sorrend (nem térünk el)
+
+Mérési baseline (LOCK előfeltétel)
+
+Fejléc LOCK + automatikus friss (védett, de élő)
+
+Központi méretek + anti-szétcsúszás
+
+Színezés paletta-folyamat
+
+Fuvar sablon rendszer (havi előregenerálás)
+
+Eseménynapló (audit)
+
+A fejlesztés folyamatáról.
+
+Ne fejlesszünk ész nélkül mindig nézzük és vegyük figyelembe a jelenlegi kód struktúrát és működést.
+A hibák javítását méréssel kezdjük majd a javítandó fájl tartalmának megismerése érdekében mindig kérd hogy töltsem fel és csak ha minden információ birtokában vagy akkor módosítsd egészítsd ki a kódot.
+Javítsuk a hibákat de ne ész nélkül! Mérjük meg mi a hiba keressük meg az okokat kérd el a módosítandó fájlt feltöltöm és csak ezek után mátgondoltan módosítsunk valamit úgy hogy más működő funkciókat ne rontsunk el!
+
+Addig nem lépünk tovább míg a módosításokat nem teszteltük és nem működik hibátlanul!
+
+[2026-03-04 | DIAG szabály] Diagnosztika soha nem állhat meg 1004 miatt
+- AutoFit / ActiveWindow / RefersToRange csak SAFE wrapperrel használható, hiba esetén DIAG "ERR" log, nincs stop.
+
+
+2026-03-16.
+
+ervezés 2026-03-16.
+Igen, most pont jól tesszük, ha még nem nyúlunk kódhoz, hanem lezárjuk a működési elvet.
+
+És amit most leírtál, abból szerintem egy nagyon fontos dolog látszik:
+
+nem a múltat akarod levágni, hanem a napi használatot akarod könnyebbé és gyorsabbá tenni.
+
+Ez nagy különbség.
+
+Amit ebből rögzítenék
+Sofőrök oldal
+
+A mostani modell jó:
+
+17 aktív sofőr
+
+1 teszt sofőr
+
+6 üres sor tartaléknak
+
+Ez praktikusan teljesen vállalható.
+Vagyis az oszlopoknál nem kell túl bonyolult automatizmus, mert a Sofőrök lap már most is ad egy természetes felső határt.
+
+Tehát az oszlopoknál a jó elv inkább ez:
+
+a Sofőrök lapon a nem üres, használható sorok száma legyen az alap
+
+plusz néhány tartalék oszlop, ha kell
+
+de ne fix, indokolatlanul széles vászon legyen
+
+Ez sokkal jobb, mint egy merev B:Y világ.
+
+Soroknál viszont más a helyzet
+
+Ott teljesen igazad van:
+a sorokat nem szabad egyszerűen levágni, mert két ellentétes igény egyszerre él:
+
+előre kell tudni tervezni
+
+vissza is kell tudni nézni
+
+Vagyis itt nem a fizikai törlés vagy korlátozás a jó irány, hanem:
+
+megjelenítési tartomány és tárolási tartomány szétválasztása
+
+Ez szerintem a kulcs.
+
+A jó modell: 3 réteg
+1. Adattér
+
+A teljes vezénylési adatsor megmarad.
+
+Tehát:
+
+múlt is megvan
+
+jelen is megvan
+
+jövő is megvan
+
+Ez a biztonság és visszakereshetőség miatt kell.
+
+2. Látható munkatér
+
+A felhasználó nem az egész óriási táblát látja egyszerre, hanem csak egy aktuális időablakot.
+
+Például:
+
+mai naphoz képest -30 nap múlt
+
++45 nap jövő
+
+És csak ez látszik alapból.
+
+3. Archív / pillanatkép réteg
+
+A múlt bizonyos pontjairól készülhet nem szerkeszthető snapshot.
+
+Ez már egy külön, jövőbeli funkció, de szakmailag nagyon jó felvetés.
+
+Ebből mi következik a Beállítások lapra?
+
+Szerintem a cfg_data_last_row önmagában kevés.
+Mert az csak azt mondja meg, hogy meddig megy a tábla technikailag, de nem mondja meg, hogy mit mutassunk most.
+
+A jobb modell ez lenne:
+
+Technikai maximum
+
+cfg_data_last_row
+
+Ez maradhat.
+Ez legyen a teljes rendszer felső korlátja.
+
+Látható múlt
+
+cfg_visible_past_days
+
+Például:
+
+30
+
+60
+
+90
+
+Ez azt mondja meg, hogy a mai naphoz képest mennyi múltbeli sort mutassunk.
+
+Látható jövő
+
+cfg_visible_future_days
+
+Például:
+
+30
+
+45
+
+60
+
+Ez mondja meg, mennyi jövőbeli nap látszódjon.
+
+Opcionális kapcsoló
+
+cfg_hide_outside_window
+
+0/1 vagy IGEN/NEM
+
+Ez dönti el, hogy a tartományon kívüli sorokat:
+
+elrejtjük
+
+vagy minden látszik
+
+Ez nagyon hasznos lenne, mert szükség esetén egy mozdulattal vissza lehetne kapcsolni a teljes nézetet.
+
+Ez miért jobb, mint a sorok számának csökkentése?
+
+Mert így:
+
+a múlt nem vész el
+
+a jövő nem vész el
+
+a napi nézet mégis könnyebb és gyorsabb
+
+a teljes adattér megmarad
+
+a biztonsági mentés logikája nem sérül
+
+Vagyis ez nem adatvesztés, csak nézeti szűkítés.
+
+A visszahívhatóság kérdése
+
+Nagyon fontos, amit mondtál:
+
+szükség esetén újra előhívhatónak kell lenni
+
+Pont ezért szerintem a helyes megoldás nem törlés, hanem:
+
+sorok rejtése
+
+vagy egy nézeti kapcsoló
+
+vagy egy „teljes nézet” gomb
+
+Tehát a múlt és távoli jövő maradjon a lapon, csak alapból ne legyen szem előtt.
+
+A snapshot / pillanatkép ötlet
+
+Ez kifejezetten jó gondolat.
+Sőt, hosszabb távon szerintem ez a rendszer egyik legfontosabb biztonsági eleme lehet.
+
+Két külön cél van itt
+A. működési nézet
+
+A Vezénylés lap az élő szerkeszthető munkafelület.
+
+B. történeti bizonyíték
+
+Egy másik lap vagy archív lap:
+
+nem szerkeszthető
+
+napvégi vagy időszakos pillanatkép
+
+visszakereshető
+
+bizonyító erejű történeti állapot
+
+Ez azért nagyon jó, mert így a napi operatív lapot lehet optimalizálni, miközben a múlt rögzített állapota külön megmarad.
+
+Én ezt a jövőképet tartom jónak
+Rövid távon
+
+A Vezénylés lapon vezessünk be láthatósági időablakot a mai nap köré.
+
+Tehát:
+
+múltból ennyi nap látszik
+
+jövőből ennyi nap látszik
+
+a többi csak rejtve van
+
+Középtávon
+
+Legyen egy egyszerű kapcsoló a Beállításokban:
+
+normál nézet
+
+teljes nézet
+
+Hosszú távon
+
+Külön archív / snapshot munkalap vagy munkalapok:
+
+csak mentésre
+
+nem szerkeszthető
+
+napzárt állapot
+
+auditálható visszakeresés
+
+A legfontosabb architekturális elv
+
+Ezt most érdemes rögzíteni:
+
+A Vezénylés lap nem az archívum. A Vezénylés lap az élő munkafelület.
+
+Az archívum lehet külön réteg.
+
+Ha ezt elfogadjuk, akkor sokkal tisztábban lehet dönteni:
+
+az élő lap lehet gyors, szűkített, ergonomikus
+
+az archív réteg lehet teljes, megőrző, lezárt
+
+Szakmai javaslatom most
+
+Én most ezt a döntést javaslom lezárni:
+
+Beállításokba bekerülő új fogalmak
+
+látható múlt napok száma
+
+látható jövő napok száma
+
+tartományon kívüli sorok rejtése igen/nem
+
+teljes technikai maximum sorhatár
+
+És külön elvi döntés
+
+A snapshot / archív munkalap külön funkció, nem a Vezénylés lap része.
+
+Ez szerintem nagyon tiszta irány.
+
+A cél az, hogy a Vezénylés lapnál különváljon:
+
+a technikai maximális adattér
+
+a napi használatban látható munkatér
+
+a jövőbeli archiválási irány
+
+1. Megmaradó meglévő kulcsok
+
+Ezek maradjanak, mert továbbra is szükségesek.
+
+cfg_date_col_width
+
+A dátum oszlop szélessége az A oszlopban.
+
+cfg_driver_col_width
+
+A sofőr oszlopok szélessége.
+
+cfg_header_row1_height
+
+Az 1. fejlécsor magassága.
+
+cfg_header_row2_height
+
+A 2. fejlécsor magassága.
+
+cfg_data_row_height
+
+Az adatsorok magassága.
+
+cfg_data_last_row
+
+A Vezénylés lap technikai felső sorhatára.
+Ez nem a napi látható tartományt jelenti, hanem azt a maximális sort, ameddig a rendszer adatot, dátumtengelyt vagy védelmet kezelhet.
+
+cfg_freeze_cell
+
+A rögzítési pont cellacíme.
+
+cfg_freeze_enabled
+
+A rögzítés be van-e kapcsolva.
+
+2. Új, javasolt kulcsok a napi használati tartományhoz
+cfg_visible_past_days
+
+A mai naphoz képest hány múltbeli nap látszódjon alapértelmezetten a Vezénylés lapon.
+
+Jelentése
+
+Ha például az érték 30, akkor a mai nap előtti 30 nap még látható marad.
+
+Célja
+
+visszanézhetőség a napi munkában
+
+ne kelljen mindig az egész múltat nézni
+
+gyorsabb, áttekinthetőbb munkafelület
+
+cfg_visible_future_days
+
+A mai naphoz képest hány jövőbeli nap látszódjon alapértelmezetten a Vezénylés lapon.
+
+Jelentése
+
+Ha például az érték 45, akkor a mai naptól számított következő 45 nap látható.
+
+Célja
+
+előretervezés
+
+közeljövő fuvarainak kényelmes kezelése
+
+ne legyen túl hosszú, feleslegesen nagy munkatér
+
+cfg_hide_outside_window
+
+Megadja, hogy a látható időablakon kívüli sorok rejtve legyenek-e.
+
+Javasolt értékek
+
+1 = igen, rejtse el
+
+0 = nem, minden maradjon látható
+
+Jelentése
+
+Ha be van kapcsolva, akkor a cfg_visible_past_days és cfg_visible_future_days tartományán kívüli sorok nem törlődnek, csak elrejtődnek.
+
+Célja
+
+a múlt és távoli jövő megmarad
+
+de az élő munkafelület letisztul
+
+bármikor visszahozható a teljes nézet
+
+3. Új, javasolt kulcsok az oszlopok ésszerű szűkítéséhez
+cfg_driver_extra_cols
+
+Az aktív sofőrökön felül hány extra sofőroszlop maradjon még látható / fenntartott tartalékként.
+
+Jelentése
+
+A rendszer alapul veszi a Sofőrök lap használható sorait, és ehhez hozzáad ennyi tartalék oszlopot.
+
+Példa
+
+Ha 18 használható sofőr van, és az érték 3, akkor 21 sofőroszloppal számol a nézet.
+
+Célja
+
+ne legyen indokolatlanul széles a tábla
+
+de maradjon hely bővülésre
+
+a napi használat legyen gyorsabb és tisztább
+
+cfg_driver_source_mode
+
+Megadja, hogy a sofőroszlopok számát miből számolja a rendszer.
+
+Javasolt értékek
+
+SOFOROK_AUTO
+
+FIXED
+
+Jelentése
+
+SOFOROK_AUTO: a Sofőrök lap használható soraiból számol
+
+FIXED: külön fix beállításból számol
+
+Célja
+
+Ez rugalmasságot ad, de alapértelmezésnek a SOFOROK_AUTO a jobb.
+
+cfg_driver_fixed_count
+
+Csak akkor használandó, ha a cfg_driver_source_mode = FIXED.
+
+Jelentése
+
+Fixen ennyi sofőroszlopot kezeljen a rendszer.
+
+Célja
+
+Speciális esetekre tartalék opció, de normál működéshez nem ez az elsődleges javaslat.
+
+4. Javasolt működési elv a sorokhoz
+
+A soroknál szerintem ez legyen a végleges értelmezés:
+
+cfg_data_last_row
+
+technikai maximum, nem napi nézet
+
+cfg_visible_past_days
+
+a napi munkában látható múlt
+
+cfg_visible_future_days
+
+a napi munkában látható jövő
+
+cfg_hide_outside_window
+
+a többi sor rejtése vagy nem rejtése
+
+Ez azért jó, mert:
+
+nincs adatvesztés
+
+nincs mesterséges levágás
+
+a napi nézet gyorsítható
+
+a múlt és jövő továbbra is megmarad
+
+5. Javasolt működési elv az oszlopokhoz
+
+Az oszlopoknál ezt javaslom:
+
+alapelv
+
+A Sofőrök lap használható sorai adják az alapot.
+
+ráadás
+
+Ehhez hozzáadódik a cfg_driver_extra_cols.
+
+opcionális kivétel
+
+Ha valamiért fix oszlopszám kell, akkor:
+
+cfg_driver_source_mode = FIXED
+
+cfg_driver_fixed_count = ...
+
+De normál esetben ne fix széles vászon legyen, hanem valós használathoz igazodó.
+
+6. Javasolt új kulcslista egyben
+
+Ez a teljes, véglegesíthető új készlet.
+
+Meglévők
+
+cfg_date_col_width
+
+cfg_driver_col_width
+
+cfg_header_row1_height
+
+cfg_header_row2_height
+
+cfg_data_row_height
+
+cfg_data_last_row
+
+cfg_freeze_cell
+
+cfg_freeze_enabled
+
+Újak
+
+cfg_visible_past_days
+
+cfg_visible_future_days
+
+cfg_hide_outside_window
+
+cfg_driver_extra_cols
+
+cfg_driver_source_mode
+
+cfg_driver_fixed_count
+
+7. Javasolt emberi megnevezések a Beállítások lapon
+
+Ezeket írnám a megjegyzés / leírás oszlopba.
+
+cfg_visible_past_days
+
+Hány múltbeli nap látszódjon a mai nap előtt
+
+cfg_visible_future_days
+
+Hány jövőbeli nap látszódjon a mai nap után
+
+cfg_hide_outside_window
+
+Az időablakon kívüli sorok elrejtése
+
+cfg_driver_extra_cols
+
+Tartalék sofőroszlopok száma az aktívakon felül
+
+cfg_driver_source_mode
+
+Sofőroszlopok számítási módja
+
+cfg_driver_fixed_count
+
+Fix sofőroszlopszám, ha a számítási mód FIXED
+
+8. Amit tudatosan nem kevernék ide most
+
+A snapshot / archív ötlet nagyon jó, de azt nem keverném bele ezekbe a kulcsokba.
+
+Az külön funkció legyen később, például:
+
+napi pillanatkép
+
+csak olvasható archív lap
+
+dátum szerinti visszakereshetőség
+
+Tehát a mostani beállításkulcsok célja csak ez legyen:
+
+az élő Vezénylés lap látható és kezelhető munkaterének szabályozása
+
+9. Szakmai ajánlott alapértékek indulásra
+
+Kiinduló javaslatként ezt tartom jónak:
+
+cfg_visible_past_days = 30
+
+cfg_visible_future_days = 45
+
+cfg_hide_outside_window = 1
+
+cfg_driver_extra_cols = 3
+
+cfg_driver_source_mode = SOFOROK_AUTO
+
+cfg_driver_fixed_count csak tartalék opcióként maradna üresen vagy 0-n.
+
+10. Végső döntési forma
+
+Ha ezt elfogadod, akkor a következő körben ebből csinálunk egy kanonikus beállítási specifikációt, azaz:
+
+kulcs
+
+típus
+
+alapérték
+
+cél
+
+működési szabály
+
+és az lesz az alap a következő tiszta módosításhoz.
+
+KANONIKUS BEÁLLÍTÁSI SPECIFIKÁCIÓ
+Vezénylés Excel rendszer — Settings SSOT v2
+1. Cél
+
+A Beállítások lap a Vezénylés lap megjelenítésének és működésének egyetlen konfigurációs forrása.
+
+A beállítások feladata:
+
+a vizuális layout szabályozása
+
+a látható munkaterület szabályozása
+
+a freeze viselkedés szabályozása
+
+a sofőroszlopok kezelésének szabályozása
+
+a napi használati nézet gyorsítása
+
+az adatok megőrzése adatvesztés nélkül
+
+A beállítások nem szolgálnak történeti archiválásra.
+Az archív / pillanatkép külön funkció.
+
+2. Általános szabályok
+2.1 SSOT szabály
+
+Minden Vezénylés-re vonatkozó működési paramétert a Beállítások lapról kell olvasni.
+
+2.2 Kulcsformátum
+
+Minden kulcs neve cfg_ előtaggal kezdődik.
+
+2.3 Értékforrás
+
+A kulcsok elsődleges forrása a Beállítások lapon lévő kulcs–érték tábla és az ehhez kötött named range.
+
+2.4 Típusbiztonság
+
+A kulcsoknak típus szerint kell értelmeződniük:
+
+szám
+
+logikai érték
+
+szöveg / módválasztó
+
+cellacím
+
+2.5 Hibás érték esetén
+
+Hibás vagy hiányzó érték esetén a rendszer:
+
+auditál
+
+dokumentált alapértékre esik vissza
+
+nem töröl adatot
+
+nem módosítja a történeti tartalmat
+
+2.6 Adatmegőrzési szabály
+
+A látható tartomány szűkítése nem jelenthet adatvesztést.
+A nem látható sorok és oszlopok megmaradnak, legfeljebb rejtettek.
+
+3. Beállítási kulcsok — layout
+3.1 cfg_date_col_width
+
+Típus: szám
+Alapérték: 5
+Jelentés: a Vezénylés lap A oszlopának szélessége
+Cél: dátumoszlop vizuális szélességének szabályozása
+Megjegyzés: kizárólag megjelenítési célú
+
+3.2 cfg_driver_col_width
+
+Típus: szám
+Alapérték: 22
+Jelentés: a sofőroszlopok szélessége
+Cél: az aktív sofőrterület egységes oszlopszélességének szabályozása
+Megjegyzés: a ténylegesen kezelt sofőroszlop-tartományra alkalmazandó
+
+3.3 cfg_header_row1_height
+
+Típus: szám
+Alapérték: 19
+Jelentés: az első fejlécsor magassága
+Cél: a fejlécterület első sorának szabályozása
+
+3.4 cfg_header_row2_height
+
+Típus: szám
+Alapérték: 19
+Jelentés: a második fejlécsor magassága
+Cél: a fejlécterület második sorának szabályozása
+
+3.5 cfg_data_row_height
+
+Típus: szám
+Alapérték: 52.5
+Jelentés: az adatsorok magassága
+Cél: a vezénylési sorok egységes megjelenítése
+
+4. Beállítási kulcsok — technikai adattér
+4.1 cfg_data_last_row
+
+Típus: egész szám
+Alapérték: 370
+Jelentés: a Vezénylés lap technikai felső sorhatára
+Cél: meghatározza azt a maximális sort, ameddig a rendszer adatot, dátumtengelyt, védelmet vagy rejtést kezelhet
+Fontos szabály: ez nem a napi látható nézet végét jelenti, hanem a teljes kezelhető adattér felső korlátját
+
+5. Beállítási kulcsok — freeze
+5.1 cfg_freeze_cell
+
+Típus: cellacím
+Alapérték: B3
+Jelentés: a rögzítési pont cellacíme a Vezénylés lapon
+Cél: a fejlécek és a dátumoszlop rögzítésének meghatározása
+Szabály: érvényes cellacímnek kell lennie
+
+5.2 cfg_freeze_enabled
+
+Típus: logikai / 0–1
+Alapérték: 1
+Jelentés: a freeze funkció aktív-e
+Cél: a rögzítés be- vagy kikapcsolása
+Értékek:
+
+1 = bekapcsolva
+
+0 = kikapcsolva
+
+6. Beállítási kulcsok — látható időablak
+6.1 cfg_visible_past_days
+
+Típus: egész szám
+Alapérték: 30
+Jelentés: a mai naphoz képest hány múltbeli nap maradjon látható alapértelmezetten
+Cél: a napi használatban szükséges visszanézhetőség biztosítása
+Szabály: a múltbeli napok nem törlődnek, csak a nézetből kerülhetnek ki
+
+6.2 cfg_visible_future_days
+
+Típus: egész szám
+Alapérték: 45
+Jelentés: a mai naphoz képest hány jövőbeli nap maradjon látható alapértelmezetten
+Cél: az előretervezési időablak szabályozása
+Szabály: a távolabbi jövő nem törlődik, csak a nézetből kerülhet ki
+
+6.3 cfg_hide_outside_window
+
+Típus: logikai / 0–1
+Alapérték: 1
+Jelentés: a látható időablakon kívüli sorokat a rendszer rejtse-e el
+Cél: az élő munkafelület egyszerűsítése és gyorsítása
+Értékek:
+
+1 = az időablakon kívüli sorok rejtve vannak
+
+0 = minden sor látható marad
+
+Fontos szabály: ez csak megjelenítési szabály, nem adatkezelési szabály
+
+7. Beállítási kulcsok — sofőroszlopok
+7.1 cfg_driver_extra_cols
+
+Típus: egész szám
+Alapérték: 3
+Jelentés: az aktív sofőrökön felül hány extra oszlop maradjon még fenntartva / látható
+Cél: biztosítson tartalék helyet anélkül, hogy a tábla indokolatlanul széles lenne
+
+7.2 cfg_driver_source_mode
+
+Típus: szöveg / módválasztó
+Alapérték: SOFOROK_AUTO
+Jelentés: meghatározza, hogy a rendszer miből számolja a tényleges sofőroszlopok számát
+Lehetséges értékek:
+
+SOFOROK_AUTO
+
+FIXED
+
+SOFOROK_AUTO
+
+A rendszer a Sofőrök lapon található használható, nem üres sorokból számol.
+
+FIXED
+
+A rendszer a cfg_driver_fixed_count értékét használja.
+
+Cél: a sofőroszlopok számításának szabályozása
+
+7.3 cfg_driver_fixed_count
+
+Típus: egész szám
+Alapérték: 0
+Jelentés: fixen használandó sofőroszlopszám
+Cél: csak akkor használatos, ha a cfg_driver_source_mode = FIXED
+Szabály: normál működésben nem elsődleges, inkább tartalék / speciális üzemmód
+
+8. Működési szabályok
+8.1 Sorok kezelése
+
+A rendszer három szinten gondolkodik:
+
+teljes technikai adattér: cfg_data_last_row
+
+látható múlt: cfg_visible_past_days
+
+látható jövő: cfg_visible_future_days
+
+A napi használatban a látható időablak a mérvadó.
+
+8.2 Időablakon kívüli sorok
+
+Ha cfg_hide_outside_window = 1, akkor a látható időablakon kívüli sorok:
+
+nem törlődnek
+
+nem vesznek el
+
+elrejthetők
+
+Ha cfg_hide_outside_window = 0, akkor minden sor látható marad.
+
+8.3 Sofőroszlopok kezelése
+
+A tényleges sofőrtartomány meghatározása:
+
+forrás meghatározása cfg_driver_source_mode szerint
+
+ehhez hozzáadódik a cfg_driver_extra_cols
+
+a rendszer csak a szükséges tartományra alkalmaz layoutot és egyéb kezelést
+
+8.4 Adatvédelem
+
+A látható munkaterület szűkítése nem eredményezheti:
+
+adatok törlését
+
+múltbeli fuvarok elvesztését
+
+jövőbeli bejegyzések törlését
+
+történeti visszakereshetőség sérülését
+
+8.5 Archiválás
+
+A beállításkulcsok nem helyettesítik az archiválást.
+A snapshot / pillanatkép / történeti mentés külön funkció, külön réteg.
+
+9. Javasolt alapérték-készlet
+
+A jelenlegi működéshez jó kiinduló készlet:
+
+cfg_date_col_width = 5
+
+cfg_driver_col_width = 22
+
+cfg_header_row1_height = 19
+
+cfg_header_row2_height = 19
+
+cfg_data_row_height = 52.5
+
+cfg_data_last_row = 370
+
+cfg_freeze_cell = B3
+
+cfg_freeze_enabled = 1
+
+cfg_visible_past_days = 30
+
+cfg_visible_future_days = 45
+
+cfg_hide_outside_window = 1
+
+cfg_driver_extra_cols = 3
+
+cfg_driver_source_mode = SOFOROK_AUTO
+
+cfg_driver_fixed_count = 0
+
+10. Beállítások lap — javasolt leírások
+Meglévő kulcsok
+
+cfg_date_col_width — Dátum oszlop szélessége (A oszlop)
+
+cfg_driver_col_width — Sofőr oszlopok szélessége
+
+cfg_header_row1_height — Fejléc 1. sor magassága
+
+cfg_header_row2_height — Fejléc 2. sor magassága
+
+cfg_data_row_height — Adatsorok magassága
+
+cfg_data_last_row — Technikai maximális sorszám
+
+cfg_freeze_cell — Sorok / oszlopok rögzítési pontja
+
+cfg_freeze_enabled — Rögzítés be/kikapcsolása
+
+Új kulcsok
+
+cfg_visible_past_days — Ennyi múltbeli nap látszódjon
+
+cfg_visible_future_days — Ennyi jövőbeli nap látszódjon
+
+cfg_hide_outside_window — Az időablakon kívüli sorok elrejtése
+
+cfg_driver_extra_cols — Tartalék sofőroszlopok száma
+
+cfg_driver_source_mode — Sofőroszlopok számítási módja
+
+cfg_driver_fixed_count — Fix sofőroszlopszám FIXED módban
+
+11. Végső elvi döntés
+
+A Vezénylés lap:
+
+élő munkafelület
+
+gyors, áttekinthető, napi használatra optimalizált nézet
+
+A történeti visszakeresés:
+
+külön archív / snapshot funkció
+
+nem a látható sorok számától függ
+
+
+1. Kanonikus beállítási tábla
+
+| Kulcs                     | Típus      |      Alapérték | Példa          | Jelentés                          | Megjegyzés                              |
+| ------------------------- | ---------- | -------------: | -------------- | --------------------------------- | --------------------------------------- |
+| `cfg_date_col_width`      | szám       |              5 | `5`            | Dátum oszlop szélessége           | `A` oszlop                              |
+| `cfg_driver_col_width`    | szám       |             22 | `22`           | Sofőroszlopok szélessége          | aktív sofőrtartomány                    |
+| `cfg_header_row1_height`  | szám       |             19 | `19`           | 1. fejlécsor magassága            | 1. sor                                  |
+| `cfg_header_row2_height`  | szám       |             19 | `19`           | 2. fejlécsor magassága            | 2. sor                                  |
+| `cfg_data_row_height`     | szám       |           52.5 | `52.5`         | Adatsorok magassága               | 3. sortól                               |
+| `cfg_data_last_row`       | egész szám |            370 | `370`          | Technikai maximális sorszám       | teljes kezelhető adattér felső korlátja |
+| `cfg_freeze_cell`         | cellacím   |             B3 | `B3`           | Freeze rögzítési pont             | érvényes cellacím                       |
+| `cfg_freeze_enabled`      | 0/1        |              1 | `1`            | Freeze be/kikapcsolás             | 1=igen, 0=nem                           |
+| `cfg_visible_past_days`   | egész szám |             30 | `30`           | Látható múlt napok száma          | mai nap előtt                           |
+| `cfg_visible_future_days` | egész szám |             45 | `45`           | Látható jövő napok száma          | mai nap után                            |
+| `cfg_hide_outside_window` | 0/1        |              1 | `1`            | Időablakon kívüli sorok elrejtése | csak nézeti szabály                     |
+| `cfg_driver_extra_cols`   | egész szám |              3 | `3`            | Tartalék sofőroszlopok száma      | aktívakon felül                         |
+| `cfg_driver_source_mode`  | szöveg     | `SOFOROK_AUTO` | `SOFOROK_AUTO` | Sofőroszlopok számítási módja     | `SOFOROK_AUTO` vagy `FIXED`             |
+| `cfg_driver_fixed_count`  | egész szám |              0 | `0`            | Fix sofőroszlopszám               | csak `FIXED` módban                     |
+
+Javasolt megjelenő megjegyzések a táblában
+
+Ezek mehetnek a Megjegyzés oszlopba:
+
+cfg_date_col_width → Dátum oszlop szélessége (A oszlop)
+
+cfg_driver_col_width → Sofőr oszlopok szélessége
+
+cfg_header_row1_height → Fejléc 1. sor magassága
+
+cfg_header_row2_height → Fejléc 2. sor magassága
+
+cfg_data_row_height → Adatsorok magassága
+
+cfg_data_last_row → Technikai maximális sorszám
+
+cfg_freeze_cell → Sorok és oszlopok rögzítési pontja
+
+cfg_freeze_enabled → Rögzítés be/kikapcsolása
+
+cfg_visible_past_days → Ennyi múltbeli nap látszódjon
+
+cfg_visible_future_days → Ennyi jövőbeli nap látszódjon
+
+cfg_hide_outside_window → Időablakon kívüli sorok elrejtése
+
+cfg_driver_extra_cols → Tartalék sofőroszlopok száma
+
+cfg_driver_source_mode → Sofőroszlopok számítási módja
+
+cfg_driver_fixed_count → Fix sofőroszlopszám FIXED módban
+
+2. Működési szabály röviden
+Sorok
+
+A soroknál három fogalom él egyszerre:
+
+cfg_data_last_row = technikai plafon
+
+cfg_visible_past_days = napi használatban látható múlt
+
+cfg_visible_future_days = napi használatban látható jövő
+
+Ami ezen kívül van, az:
+
+megmarad
+
+nem törlődik
+
+csak elrejthető
+
+Oszlopok
+
+A sofőroszlopok számítása:
+
+ha cfg_driver_source_mode = SOFOROK_AUTO, akkor a Sofőrök lap használható sorai alapján számolunk
+
+ehhez hozzáadódik a cfg_driver_extra_cols
+
+ha cfg_driver_source_mode = FIXED, akkor a cfg_driver_fixed_count az alap
+
+3. Tiszta implementációs terv
+
+Itt a javasolt, helyes sorrend.
+
+Fázis 1 — Settings SSOT bővítés
+
+Cél:
+
+az új kulcsok bekerüljenek a Beállítások táblába
+
+legyen hozzájuk named range kötés
+
+a rendszer tudja őket olvasni
+
+Eredmény:
+
+az új config értékek már SSOT-ból jönnek
+
+még nincs viselkedésváltozás, csak előkészítés
+
+Fázis 2 — Settings olvasó réteg bővítése
+
+Cél:
+
+a modSettingsSSOT értelmezze az új kulcsokat
+
+típushelyes olvasás legyen
+
+alapértékek és hibás érték fallbackek legyenek
+
+Eredmény:
+
+a core egységesen tudja olvasni:
+
+visible past
+
+visible future
+
+hide outside window
+
+driver mode
+
+driver extra
+
+fixed count
+
+Fázis 3 — Sofőrtartomány számítási szabály bevezetése
+
+Cél:
+
+legyen egyetlen kanonikus számítás arra, hogy meddig tart a tényleges sofőrterület
+
+Szabály:
+
+SOFOROK_AUTO esetén a Sofőrök lap használható sorai + cfg_driver_extra_cols
+
+FIXED esetén cfg_driver_fixed_count
+
+Eredmény:
+
+a layout és a fejlécterület többé nem fix, túl széles tartományra dolgozik
+
+Fázis 4 — Látható dátumablak szabály bevezetése
+
+Cél:
+
+a mai nap köré képzett látható időablak számítása
+
+Szabály:
+
+múlt = cfg_visible_past_days
+
+jövő = cfg_visible_future_days
+
+technikai plafon = cfg_data_last_row
+
+Eredmény:
+
+a rendszer külön tudja:
+
+mi van az adattérben
+
+mi legyen látható a napi munkához
+
+Fázis 5 — Layout optimalizálás
+
+Cél:
+
+a modVezenylesLayout csak a szükséges tartományra dolgozzon
+
+Mit jelent:
+
+ne a teljes nagy vásznon dolgozzon
+
+csak az aktív sofőrtartományt és kezelt sorablakot formázza
+
+láthatóságot is ennek megfelelően állítsa
+
+Eredmény:
+
+gyorsabb aktiválás
+
+kisebb vizuális teher
+
+tisztább munkafelület
+
+Fázis 6 — Sorrejtési logika bevezetése
+
+Cél:
+
+ha cfg_hide_outside_window = 1, akkor az időablakon kívüli sorok rejtve legyenek
+
+ha 0, akkor minden látszódjon
+
+Fontos:
+
+nincs törlés
+
+nincs adatvesztés
+
+csak nézeti szabály
+
+Eredmény:
+
+napi használatra gyorsabb és tisztább lap
+
+teljes adat továbbra is elérhető
+
+Fázis 7 — Render pipeline finomítása
+
+Cél:
+
+a Render_Vezenyles_From_SSOT új sorrendben már az új munkatér-logikát használja
+
+Végső logika:
+
+named range bind
+
+protection
+
+aktív sofőrtartomány számítás
+
+aktív dátumablak számítás
+
+layout
+
+dates
+
+row visibility
+
+freeze
+
+Eredmény:
+
+a V2 core valóban az új SSOT szabályokra épül
+
+Fázis 8 — Külön archív koncepció előkészítése
+
+Ez még nem azonnali fejlesztés, csak döntéselőkészítés.
+
+Cél:
+
+a Vezénylés maradjon élő munkafelület
+
+a történeti állapot külön snapshot lapon vagy archív rétegben éljen
+
+
+Amit most rögzíteni kell
+
+A Vezénylés oszlop nem csak vizuális oszlop, hanem egy teljes sofőr-oszlop egység.
+
+Egy sofőr-oszlop egységhez tartozik:
+
+fejléc 1. sor: sofőr neve
+
+fejléc 2. sor: vontató / pótkocsi
+
+teljes adatoszlop alatta
+
+minden beírt fuvar, megjegyzés, szín, állapot
+
+Tehát ha a sorrend változik, akkor nem fejlécet rendezünk, hanem teljes oszlopblokkot mozgatunk.
+
+Ebből az első kanonikus szabály
+Szabály 1 — Teljes oszlopmozgatás
+
+Ha a Beállítások vagy a Sofőrök lap alapján megváltozik a sofőrök sorrendje, akkor a Vezénylés lapon az adott sofőrhöz tartozó teljes oszlopot kell áthelyezni.
+
+Ez azt jelenti:
+
+fejléc együtt mozog
+
+teljes napi adattartalom együtt mozog
+
+formázás együtt mozog
+
+megjegyzések is együtt mozognak
+
+Tilos csak a fejlécet átírni.
+
+Ez legyen kőbe vésve.
+
+Második fontos dolog: saját jármű / idegen jármű
+
+Ez is nagyon lényeges, mert ez már üzleti logika.
+
+A rendszerben egy sofőrhöz tartozik egy alapértelmezett jármű-pár:
+
+saját vontató
+
+saját pótkocsi
+
+De a valóságban előfordul, hogy:
+
+másik vontatóval megy
+
+másik pótkocsival megy
+
+mindkettő eltér a sajátjától
+
+Ezt most pirossal jelzik a fuvarszervezők.
+
+Ez teljesen legitim üzleti szabály, és szerintem ezt nem kézi, szabad értelmezésre, hanem kanonikus ellenőrzésre kell tenni.
+
+Ebből a második kanonikus szabály
+Szabály 2 — Eltérő járműkapcsolat jelölése
+
+Ha a sofőr adott napi bejegyzésében szereplő vontató vagy pótkocsi eltér a Sofőrök lapon hozzárendelt alapértelmezettől, akkor a rendszer ezt eltérésként kezeli.
+
+Az eltérés:
+
+lehet csak vontató eltérés
+
+lehet csak pótkocsi eltérés
+
+lehet mindkettő
+
+És ezt a rendszernek:
+
+fel kell ismernie
+
+vizuálisan jeleznie kell
+
+de nem hibának, hanem kiemelt állapotnak
+
+Tehát ez nem tiltott esemény, csak kiemelendő esemény.
+
+Harmadik kritikus pont: duplikáció
+
+Ez még fontosabb.
+
+Mert itt már nem egyszerűen eltérésről van szó, hanem ütközésről.
+
+Nem lehet ugyanarra a napra ugyanabban az időben ugyanaz:
+
+sofőr
+
+vontató
+
+pótkocsi
+
+több helyen is.
+
+Ebből a harmadik kanonikus szabály
+Szabály 3 — Duplikáció tiltása / jelzése
+
+A rendszernek figyelnie kell, hogy ugyanazon aktív időszakban ne legyen duplikált:
+
+sofőr
+
+vontató
+
+pótkocsi
+
+Pontosabban
+
+A duplikáció legalább három szinten értelmezendő:
+
+3.1 Sofőr duplikáció
+
+Ugyanaz a sofőr ne szerepeljen egyszerre két külön aktív kiosztásban.
+
+3.2 Vontató duplikáció
+
+Ugyanaz a vontató ne legyen egyszerre két helyre kiosztva.
+
+3.3 Pótkocsi duplikáció
+
+Ugyanaz a pótkocsi se legyen egyszerre két helyre kiosztva.
+
+Ez már adatkonzisztencia.
+
+Nagyon fontos különbség
+
+A két esetet ne keverjük össze.
+
+Eset A — eltérő saját jármű
+
+Példa:
+Balog János nem a saját AALG385 vontatóval megy, hanem másikkal.
+
+Ez:
+
+megengedett
+
+de jelölendő
+
+Eset B — duplikáció
+
+Példa:
+ugyanaz a vontató két sofőrnél is szerepel ugyanarra az időre.
+
+Ez:
+
+nem rendben lévő állapot
+
+figyelmeztetendő / hibás állapot
+
+Ezért a rendszerben külön kell kezelni:
+
+eltérés
+
+ütközés
+
+Amit ebből fejlesztési oldalról rögzítenék
+Új fogalom 1 — oszlop-identitás
+
+A Vezénylés oszlop identitása ne pusztán a pozíció legyen (B, C, D...), hanem a hozzárendelt sofőr.
+
+Tehát:
+
+nem az a fontos, hogy „B oszlop”
+
+hanem hogy „Farkas Tibor oszlopa”
+
+Ez kell ahhoz, hogy rendezéskor a teljes oszlop helyesen menjen arrébb.
+
+Új fogalom 2 — alapjármű-kapcsolat
+
+A Sofőrök lapon minden sofőrhöz legyen kanonikus alapkapcsolat:
+
+sofőr neve
+
+saját vontató
+
+saját pótkocsi
+
+Ez az összehasonlítás alapja.
+
+Új fogalom 3 — napi kiosztási állapot
+
+A Vezénylés adott cellájának vagy napi blokkjának állapota lehessen:
+
+normál
+
+eltérő saját jármű
+
+duplikált / ütköző
+
+Ez tiszta logikát ad.
+
+Én ezt külön szabályblokkban rögzíteném
+KANONIKUS ADATINTEGRITÁSI SZABÁLYOK — VEZÉNYLÉS
+A. Oszlopmozgatási szabály
+
+A sofőrsorrend változása esetén a teljes sofőroszlop mozog, nem csak a fejléc.
+
+B. Saját jármű eltérés szabály
+
+Ha a napi kiosztás járműve eltér a sofőrhöz rendelt alapjárműtől, azt a rendszer eltérésként jelzi.
+
+C. Duplikációs szabály
+
+Ugyanazon aktív időszakban nem lehet duplikált:
+
+sofőr
+
+vontató
+
+pótkocsi
+
+D. Állapottípusok
+
+Minden kiosztás lehet:
+
+normál
+
+eltéréses
+
+ütköző
+
+Amit most még át kell beszélnünk, mielőtt fejlesztjük
+
+Még 4 pontosítást érdemes lezárni.
+
+1. A sorrend honnan jön?
+
+A sofőrsorrend végső SSOT-ja:
+
+a Sofőrök lap?
+
+vagy a Beállítások lap?
+
+vagy külön sorrend mező?
+
+Szerintem a legjobb a Sofőrök lapon egy sorrend mező.
+
+2. Az eltérő jármű jelzés csak vizuális, vagy logikai is?
+
+Szerintem:
+
+első körben vizuális + audit
+
+később lehet riportolható szabály
+
+3. A duplikáció blokkoljon, vagy csak jelezzen?
+
+Ez kulcskérdés.
+
+Lehetséges módok:
+
+csak piros figyelmeztetés
+
+mentés tiltása
+
+audit + figyelmeztetés
+
+4. Mi számít „ugyanarra az időre”?
+
+Ha a cellák napi bontásúak, akkor a duplikáció vizsgálat napi szinten történjen?
+Vagy a cellában lévő konkrét időpontok alapján?
+
+Ez üzletileg fontos.
+
+Szakmai javaslatom most
+
+Én ezt a sorrendet javaslom:
+
+Első körben rögzítsük
+
+a teljes oszlopmozgatás szabályát
+
+az eltérés vs duplikáció különbségét
+
+a sofőr-alapjármű SSOT kapcsolatot
+
+a duplikációk ellenőrzési szintjét
+
+És csak utána kódoljuk.
+
+Röviden: amit most biztosan kijelenthetünk
+
+igazad van: csak fejlécmozgatás tilos
+
+az eltérő saját jármű nem hiba, hanem jelölt eltérés
+
+a duplikált sofőr / autó / pótkocsi külön integritási probléma
+
+ezt a fejlesztésnél külön szabályként kell beépíteni
+
+Vezénylés rendszer — KONKRÉT FEJLESZTÉSI CSOMAGOK
+Csomag 0 — Stabil alap rögzítés
+Cél
+
+A jelenlegi működő állapot lefagyasztása kiindulási pontként.
+
+Feladatok
+
+teljes projekt export
+
+modulstruktúra rögzítése
+
+audit pipeline ellenőrzése
+
+Workbook_Open stabil futás
+
+Ellenőrzések
+
+Vezénylés lap aktiválható
+
+freeze működik
+
+fejléc látszik
+
+dátumok generálódnak
+
+Kimenet
+
+Baseline V2
+
+Csomag 1 — Beállítási SSOT bővítés
+Cél
+
+Az új konfigurációs kulcsok bevezetése.
+
+Beállítási kulcsok
+kulcs	jelentés
+cfg_visible_past_days	hány nap látszódjon visszafelé
+cfg_visible_future_days	hány nap látszódjon előre
+cfg_hide_outside_window	elrejti a tartományon kívüli napokat
+cfg_driver_source_mode	sofőrtartomány számítás módja
+cfg_driver_extra_cols	tartalék oszlopok száma
+cfg_driver_fixed_count	fix oszlopszám
+Feladatok
+
+1️⃣ Beállítások lap mezők létrehozása
+2️⃣ Named range-ek
+3️⃣ Settings olvasó bővítése
+4️⃣ Audit log
+
+Kimenet
+
+A rendszer már ismeri a kulcsokat, de még nem használja őket aktívan.
+
+Csomag 2 — Látható munkatér modell
+Cél
+
+Szétválasztani:
+
+teljes adattér
+
+napi munkatér
+
+Bevezetett fogalmak
+fogalom	jelentés
+visible_window_start	látható tartomány kezdete
+visible_window_end	látható tartomány vége
+render_range	tényleges renderelt tartomány
+Feladatok
+
+1️⃣ dátumtengely számítás bővítése
+2️⃣ látható időablak számítás
+3️⃣ render_range bevezetése
+4️⃣ audit log
+
+Kimenet
+
+A rendszer tudja mi a munkatér, még nem rejti el a sorokat.
+
+Csomag 3 — Sofőrtartomány számítás
+Cél
+
+A Vezénylés szélessége ne legyen fix.
+
+Módok
+mód	jelentés
+AUTO	Sofőrök lap alapján számolt
+FIXED	fix oszlopszám
+Feladatok
+
+1️⃣ Sofőrök lap feldolgozása
+2️⃣ sofőrszám meghatározása
+3️⃣ extra oszlop hozzáadás
+4️⃣ render tartomány számítás
+
+Kimenet
+
+A rendszer tudja:
+
+driver_column_start
+driver_column_end
+driver_count
+Csomag 4 — Render optimalizáció
+Cél
+
+Gyors lapaktiválás.
+
+Optimalizálási pontok
+
+layout csak szükséges oszlopokra
+
+protection csak munkatérre
+
+dátumok csak látható tartományra
+
+freeze stabilizálás
+
+Feladatok
+
+1️⃣ layout refaktor
+2️⃣ protection refaktor
+3️⃣ dátum modul gyorsítás
+4️⃣ freeze stabilizálás
+
+Kimenet
+
+Gyorsabb vezénylés lap.
+
+Csomag 5 — Sofőroszlop identitás
+Cél
+
+Az oszlopok ne pozíció alapján éljenek.
+
+Új fogalom
+driver_column_identity
+Mapping
+driver_id -> column
+column -> driver_id
+Feladatok
+
+1️⃣ fejléc azonosítás
+2️⃣ driver mapping
+3️⃣ audit log
+
+Kimenet
+
+A rendszer tudja:
+
+melyik sofőr melyik oszlop
+Csomag 6 — Sofőroszlop mozgatás
+Cél
+
+A sorrend változásakor teljes oszlop mozogjon.
+
+Mozgatott elemek
+
+fejléc
+
+jármű
+
+pótkocsi
+
+teljes napi cella tartalom
+
+formázás
+
+megjegyzések
+
+Feladatok
+
+1️⃣ új sorrend számítás
+2️⃣ oszlop mapping
+3️⃣ oszlop áthelyezés
+4️⃣ audit
+
+Kimenet
+
+A fejléc és a teljes oszlop együtt mozog.
+
+Csomag 7 — Alapjármű modell
+Cél
+
+A rendszer tudja:
+
+sofőr -> alap jármű
+sofőr -> alap pótkocsi
+SSOT
+
+A Sofőrök lap.
+
+Feladatok
+
+1️⃣ driver_vehicle_map
+2️⃣ driver_trailer_map
+3️⃣ cache
+
+Kimenet
+
+A rendszer ismeri a sofőr alap kapcsolatát.
+
+Csomag 8 — Eltérés felismerés
+Cél
+
+Ha a sofőr nem saját járművel megy → felismerés.
+
+Logika
+assigned_vehicle ≠ base_vehicle
+Feladatok
+
+1️⃣ napi cella parsing
+2️⃣ jármű felismerés
+3️⃣ összevetés
+
+Állapotok
+állapot	jelentés
+normal	saját jármű
+foreign	idegen jármű
+Kimenet
+
+Eltérés felismerve.
+
+Csomag 9 — Vizuális jelölés
+Cél
+
+Az eltérés látszódjon.
+
+Megjelenítés
+
+A fuvarszervezők gyakorlata:
+
+piros jelölés
+Feladatok
+
+1️⃣ conditional formatting
+2️⃣ cella jelölés
+3️⃣ audit
+
+Kimenet
+
+Az eltérés azonnal látszik.
+
+Csomag 10 — Duplikáció felismerés
+Cél
+
+Ne legyen egyszerre:
+
+azonos sofőr
+
+azonos jármű
+
+azonos pótkocsi
+
+Ellenőrzés
+
+napi szinten.
+
+Feladatok
+
+1️⃣ napi aggregáció
+2️⃣ jármű ütközés keresés
+3️⃣ pótkocsi ütközés keresés
+
+Kimenet
+
+A rendszer felismeri a duplikációt.
+
+Csomag 11 — Duplikáció jelzés
+Cél
+
+A duplikáció látható legyen.
+
+Megjelenítés
+
+cella jelölés
+
+audit
+
+figyelmeztetés
+
+Első ütem
+
+csak jelzés
+nem tiltás
+
+Csomag 12 — Audit bővítés
+Naplózandó események
+esemény
+sofőr sorrend változás
+oszlopmozgatás
+jármű eltérés
+duplikáció
+render tartomány
+Csomag 13 — Teljes nézet / munkanézet
+Cél
+
+A felhasználó vissza tudjon váltani teljes nézetre.
+
+Módok
+WORK_VIEW
+FULL_VIEW
+Csomag 14 — Snapshot / archív
+Cél
+
+A vezénylés:
+
+élő munkafelület
+
+A történeti állapot:
+
+archív snapshot
+A VALÓDI FEJLESZTÉSI SORREND
+Azonnal
+
+1️⃣ Csomag 1
+2️⃣ Csomag 2
+3️⃣ Csomag 3
+4️⃣ Csomag 4
+
+Második hullám
+
+5️⃣ Csomag 5
+6️⃣ Csomag 6
+
+Harmadik hullám
+
+7️⃣ Csomag 7
+8️⃣ Csomag 8
+9️⃣ Csomag 9
+
+Negyedik hullám
+
+10️⃣ Csomag 10
+11️⃣ Csomag 11
+12️⃣ Csomag 12
+
+Külön projekt
+
+13️⃣ Csomag 13
+14️⃣ Csomag 14
+
+Nagyon fontos
+
+Ha 6. csomag (oszlopmozgatás) nincs meg:
+
+⚠️ a sorrend változtatása adatkeveredést okoz
+pont ahogy a képen mutattad.
+
+Ezért ez kritikus fejlesztés.
+
+Ha szeretnéd, a következő lépésben meg tudom csinálni a teljes:
+
+Vezénylés V2 architektúra diagramot
+
+ami megmutatja:
+
+modulok
+
+adatfolyam
+
+SSOT pontok
+
+render pipeline
+
+Ez segít elkerülni a mostani Excel VBA káoszt.
+
+
+
+KANONIKUS ADATINTEGRITÁSI SPECIFIKÁCIÓ
+Vezénylés rendszer — sofőroszlop-mozgatás, saját járműtől eltérés, duplikációkezelés
+1. Cél
+
+Ez a specifikáció azt rögzíti, hogy a Vezénylés lapon:
+
+a sofőrök sorrendváltozása ne keverje össze az adatokat
+
+a saját járműtől eltérő napi kiosztás felismerhető és jelölhető legyen
+
+a duplikált sofőr / vontató / pótkocsi kiosztások felismerhetők legyenek
+
+A cél nem csak a szép megjelenítés, hanem az adatintegritás védelme.
+
+2. Alapfogalmak
+2.1 Sofőroszlop
+
+A Vezénylés lapon egy sofőrhöz tartozó teljes függőleges oszlopegység.
+
+Tartalma:
+
+fejléc 1. sor: sofőr neve
+
+fejléc 2. sor: alap vontató / alap pótkocsi megjelenítés
+
+teljes napi adatterület a fejléc alatt
+
+minden szöveg, formázás, szín, megjegyzés és kapcsolódó tartalom
+
+2.2 Sofőroszlop-identitás
+
+A sofőroszlop identitását nem az oszlop betűjele adja, hanem a hozzárendelt sofőr.
+
+Tehát nem az a lényeg, hogy valami „C oszlop”, hanem az, hogy az adott oszlop „Horváth Kálmán oszlopa”.
+
+2.3 Alapjármű-kapcsolat
+
+A Sofőrök lapon minden sofőrhöz tartozik egy kanonikus alapkapcsolat:
+
+sofőr
+
+alap vontató
+
+alap pótkocsi
+
+Ez az összehasonlítás alapja.
+
+2.4 Napi kiosztás
+
+A Vezénylés lapon egy adott sofőr adott napi bejegyzése.
+
+Ez lehet:
+
+üres
+
+normál kiosztás
+
+eltérő járműves kiosztás
+
+ütköző kiosztás
+
+3. Sofőroszlop-mozgatás
+3.1 Alapszabály
+
+Ha a sofőrök sorrendje megváltozik, akkor a Vezénylés lapon a sofőrhöz tartozó teljes oszlopegységet kell mozgatni.
+
+Nem csak a fejlécet.
+
+3.2 Mit kell együtt mozgatni
+
+Egy sofőroszlop mozgatásakor együtt kell mozognia:
+
+a fejlécnek
+
+a sofőr nevének
+
+a járműadatoknak
+
+az összes napi cellatartalomnak
+
+a formázásnak
+
+a színjelöléseknek
+
+a megjegyzéseknek
+
+minden, az oszlophoz kötött vizuális és tartalmi elemnek
+
+3.3 Tiltott művelet
+
+Tilos olyan sorrendváltoztatás, amelynél:
+
+csak a fejléc változik
+
+csak a sofőrnév kerül át másik oszlopba
+
+az adatok helyben maradnak, miközben a fejléc mást mutat
+
+Ez adatkorrupciónak minősül.
+
+3.4 Sorrendforrás
+
+A sofőroszlopok sorrendjének egyetlen SSOT forrása kell legyen.
+
+Javasolt forrás:
+
+a Sofőrök lap sorrendje vagy egy külön sorrend mezője
+
+Nem javasolt:
+
+kézi vizuális átrendezés a Vezénylés lapon
+
+több helyről származó párhuzamos sorrend
+
+3.5 Mozgatás eredménye
+
+Sorrendváltozás után a Vezénylés minden sofőroszlopa ugyanahhoz a sofőrhöz tartozó történeti és aktuális adatokat tartalmazza, mint előtte, csak új pozícióban.
+
+Tehát:
+
+a sofőr identitása marad
+
+csak az oszlop helye változik
+
+4. Saját járműtől eltérés
+4.1 Alapszabály
+
+Ha egy sofőr napi kiosztásában szereplő vontató vagy pótkocsi eltér a Sofőrök lapon hozzá rendelt alapjárműtől, akkor ezt a rendszer eltérésként kezeli.
+
+4.2 Az eltérés nem hiba
+
+A saját járműtől eltérő kiosztás üzemszerűen előfordulhat.
+
+Ezért:
+
+nem tiltott
+
+nem adatkezelési hiba
+
+de kiemelten jelölendő állapot
+
+4.3 Eltéréstípusok
+
+Az eltérés háromféle lehet:
+
+4.3.1 Vontatóeltérés
+
+A napi kiosztásban szereplő vontató eltér az alap vontatótól.
+
+4.3.2 Pótkocsi-eltérés
+
+A napi kiosztásban szereplő pótkocsi eltér az alap pótkocsitól.
+
+4.3.3 Teljes eltérés
+
+Mind a vontató, mind a pótkocsi eltér az alapkapcsolattól.
+
+4.4 Jelölési szabály
+
+Az eltérést a rendszernek vizuálisan jeleznie kell.
+
+A konkrét szín vagy stílus lehet egyeztetés tárgya, de az elv ez:
+
+a normál kiosztástól egyértelműen megkülönböztethető legyen
+
+ne legyen összekeverhető a duplikációs hibával
+
+4.5 Összehasonlítás alapja
+
+Az összehasonlítás kizárólag a Sofőrök lapon rögzített alapkapcsolathoz képest történik.
+
+Tehát a rendszer nem találgat, hanem a kanonikus alapadatból indul ki.
+
+4.6 Naplózás
+
+Az eltérő járműves kiosztás auditálható esemény lehet, de elsődlegesen kiemelt üzemi állapot, nem tiltott állapot.
+
+5. Duplikációkezelés
+5.1 Alapszabály
+
+Ugyanabban az aktív időszakban nem lehet duplikált kiosztás az alábbi entitásokra:
+
+sofőr
+
+vontató
+
+pótkocsi
+
+5.2 Mi számít duplikációnak
+
+Duplikáció akkor áll fenn, ha ugyanaz az erőforrás ugyanarra az időre egynél több helyen szerepel aktívként.
+
+5.3 Duplikációtípusok
+5.3.1 Sofőrduplikáció
+
+Ugyanaz a sofőr ugyanarra az időre két külön kiosztásban szerepel.
+
+5.3.2 Vontatóduplikáció
+
+Ugyanaz a vontató ugyanarra az időre két külön kiosztásban szerepel.
+
+5.3.3 Pótkocsiduplikáció
+
+Ugyanaz a pótkocsi ugyanarra az időre két külön kiosztásban szerepel.
+
+5.4 Duplikáció és eltérés különbsége
+
+Ez kulcspont.
+
+Eltérés
+
+A sofőr nem a saját alapjárművével megy.
+
+Ez:
+
+megengedett
+
+jelölendő
+
+nem feltétlenül hibás
+
+Duplikáció
+
+Ugyanaz a sofőr / vontató / pótkocsi több helyen egyszerre aktív.
+
+Ez:
+
+integritási probléma
+
+figyelmeztetendő
+
+potenciálisan hibás állapot
+
+A két fogalmat a rendszerben szét kell választani.
+
+5.5 Duplikációkezelési szint
+
+Első körben a rendszer minimum:
+
+felismeri
+
+jelzi
+
+auditálja
+
+Későbbi döntés kérdése lehet, hogy:
+
+csak figyelmeztet
+
+vagy mentést / véglegesítést is blokkol
+
+5.6 Időegység
+
+A duplikáció vizsgálat alapértelmezett egysége a napi kiosztási szint.
+
+Vagyis első körben:
+
+ugyanazon napon
+
+azonos aktív napi tartományon belül
+
+Később ez finomítható konkrét indulási/érkezési időkre, de az alap specifikáció napi szintű.
+
+5.7 Üres értékek kezelése
+
+Üres vagy nem értelmezhető vontató / pótkocsi esetén:
+
+nem keletkezik automatikusan duplikáció
+
+de a rekord lehet hiányos vagy ellenőrzendő
+
+Ez külön validációs kérdés.
+
+6. Állapottípusok a napi kiosztásra
+
+A rendszer egy napi kiosztást az alábbi állapottípusok valamelyikébe sorolhat.
+
+6.1 Normál
+
+A sofőr a saját alapjármű-kapcsolatának megfelelő kiosztásban szerepel, és nincs duplikáció.
+
+6.2 Eltéréses
+
+A sofőr kiosztása eltér az alapjármű-kapcsolattól, de nincs duplikáció.
+
+6.3 Ütköző
+
+Duplikáció áll fenn sofőrben, vontatóban vagy pótkocsiban.
+
+6.4 Eltéréses és ütköző
+
+Az eltérés és a duplikáció egyszerre is fennállhat.
+
+Ezért a rendszer logikailag ne kizárólagos színkategóriákban gondolkodjon, hanem állapotokban.
+
+7. Megjelenítési elvek
+7.1 Normál állapot
+
+A megszokott normál vizuális megjelenés.
+
+7.2 Eltéréses állapot
+
+Kiemelt, de nem hibajellegű vizuális megjelenítés.
+
+A jelenlegi üzemi gyakorlat szerint ez lehet piros vagy más kiemelés, de a pontos stílus külön UI-döntés.
+
+7.3 Duplikációs állapot
+
+Erősebb figyelmeztető megjelenítés, mint az egyszerű eltérés.
+
+Ennek vizuálisan egyértelműbben hibajellegűnek kell lennie.
+
+7.4 Különbségtétel
+
+A rendszer vizuálisan is különböztesse meg:
+
+az eltérést
+
+a duplikációt
+
+Nem szabad ugyanazzal a jelöléssel kezelni a kettőt.
+
+8. Audit szabályok
+8.1 Oszlopmozgatás
+
+A sofőroszlopok sorrendváltozása auditálható esemény.
+
+Minimum tartalom:
+
+mikor történt
+
+melyik sofőr melyik pozícióból melyik pozícióba került
+
+8.2 Eltéréses kiosztás
+
+Az eltérő alapjárműves napi kiosztás auditálható.
+
+Minimum tartalom:
+
+sofőr
+
+alap vontató / alap pótkocsi
+
+tényleges vontató / tényleges pótkocsi
+
+nap
+
+8.3 Duplikáció
+
+A duplikációs esemény auditálható.
+
+Minimum tartalom:
+
+nap
+
+ütközés típusa
+
+érintett sofőr(ök) / vontató(k) / pótkocsi(k)
+
+9. SSOT szabályok
+9.1 Sofőr-alapkapcsolat SSOT
+
+A sofőr alap vontatója és alap pótkocsija a Sofőrök lapról származik.
+
+9.2 Sofőrsorrend SSOT
+
+A sofőrök sorrendje egyetlen kijelölt forrásból származik.
+
+Javasolt:
+
+Sofőrök lap sorrend mezője
+vagy
+
+a Sofőrök lap táblabeli sorrendje
+
+9.3 Vezénylés nem lehet önálló sorrend-forrás
+
+A Vezénylés lap nem lehet a sorrend elsődleges forrása, mert az ottani sorrend csak megjelenítési eredmény.
+
+10. Tiltott állapotok
+
+Az alábbiak tiltott vagy kerülendő állapotok:
+
+10.1 Fejlécmozgatás adatok nélkül
+
+A fejléc átrendezése az oszlopadatok mozgatása nélkül.
+
+10.2 Párhuzamos sofőrazonosítás
+
+Ugyanaz a sofőr több oszlopban vagy több aktív napi kiosztásban egyszerre.
+
+10.3 Párhuzamos járműhasználat
+
+Ugyanaz a vontató vagy pótkocsi egyszerre több aktív kiosztásban.
+
+10.4 SSOT-tól független kézi járműlogika
+
+Olyan kézi változtatás, amely felülírja a Sofőrök lap alapkapcsolatát anélkül, hogy ez eltérésként vagy auditált állapotként megjelenne.
+
+11. Fejlesztési következmények
+
+E specifikációból a fejlesztésre ez következik:
+
+11.1 A sofőroszlopok kezelése identitásalapú legyen
+
+Ne pozícióalapú.
+
+11.2 A sorrendmódosítás teljes oszlopmozgatással történjen
+
+Ne fejléc-cserével.
+
+11.3 Legyen alapjármű-összehasonlítási logika
+
+A Sofőrök lap alapján.
+
+11.4 Legyen eltérés- és duplikációfelismerés
+
+Külön logikai állapotként.
+
+11.5 A vizuális rendszer tudjon különbséget tenni
+
+Eltérés és ütközés között.
+
+12. Végső rövid összefoglalás
+Sofőroszlop-mozgatás
+
+A sofőr sorrendjének változásakor a teljes sofőroszlop mozog, minden adattal együtt.
+
+Saját járműtől eltérés
+
+Ha a napi kiosztás járműve eltér a sofőr alap járműkapcsolatától, az jelölendő eltérés, de nem automatikusan hiba.
+
+Duplikációkezelés
+
+Ha ugyanaz a sofőr, vontató vagy pótkocsi ugyanarra az aktív időre több helyen szerepel, az integritási probléma, amelyet a rendszernek felismernie és jeleznie kell.
+
+KANONIKUS FEJLESZTÉSI SPECIFIKÁCIÓ
+Vezénylés rendszer — bevezetési sorrend
+Alapelv
+
+A fejlesztés sorrendje mindig ez legyen:
+
+1. SSOT
+2. stabil render
+3. látható munkatér
+4. oszlopidentitás és mozgatás
+5. eltérésfelismerés
+6. duplikációkezelés
+7. archív / snapshot
+
+Azért ez a jó sorrend, mert ha előbb próbálunk duplikációt vagy oszlopmozgatást bevezetni, miközben a render és az SSOT még nincs teljesen lezárva, akkor újra instabil lesz a rendszer.
+
+FÁZIS 0 — Stabil alap rögzítése
+Cél
+
+A mostani V2 core működésének rögzítése mint kiinduló alap.
+
+Mit jelent
+
+a render pipeline már egy helyről fusson
+
+a freeze stabil legyen
+
+a layout stabil legyen
+
+a dátumtengely stabil legyen
+
+a Beállítások lap legyen a konfigurációs SSOT
+
+Eredmény
+
+Lesz egy működő, mérhető kiindulási állapot.
+
+Kilépési feltétel
+
+nincs compile hiba
+
+az aktiválás működik
+
+a fejléc látszik
+
+a dátumoszlop látszik
+
+a freeze működik
+
+az auditból követhető a render
+
+FÁZIS 1 — Beállítási SSOT bővítése
+Cél
+
+Az új konfigurációs kulcsok bekerüljenek a rendszerbe.
+
+Bevezetendő kulcsok
+
+cfg_visible_past_days
+
+cfg_visible_future_days
+
+cfg_hide_outside_window
+
+cfg_driver_extra_cols
+
+cfg_driver_source_mode
+
+cfg_driver_fixed_count
+
+Feladat
+
+bekerülnek a Beállítások lapra
+
+bekerülnek a named range / bind logikába
+
+bekerülnek a Settings SSOT olvasóba
+
+Még nem cél
+
+még nincs látható működésváltozás
+
+még nincs sorrejtés
+
+még nincs oszlopmozgatás
+
+Eredmény
+
+A rendszer már tudja olvasni az új szabályokat, de még nem alkalmazza őket teljes üzemi logikával.
+
+Miért ez az első valódi fejlesztési lépés
+
+Mert minden későbbi működés ehhez a konfigurációs alaphoz kötődik.
+
+FÁZIS 2 — Látható munkatér modell bevezetése
+Cél
+
+A teljes adattér és a napi látható munkatér szétválasztása.
+
+Elv
+
+A rendszer külön kezelje:
+
+technikai adattér
+
+látható múlt
+
+látható jövő
+
+teljes nézet vagy szűkített nézet
+
+Feladat
+
+A Vezénylés logikában megjelenik az időablak fogalma:
+
+múlt napok
+
+jövő napok
+
+időablakon kívüli sorok állapota
+
+Eredmény
+
+A rendszer tudni fogja:
+
+mit kezel teljes adattérként
+
+és mit mutasson napi munkafelületként
+
+Kilépési feltétel
+
+Még mindig nincs adatvesztés, de már van külön fogalom a látható és nem látható tartományra.
+
+FÁZIS 3 — Sofőrtartomány számítás bevezetése
+Cél
+
+A Vezénylés szélessége ne fix, túlméretezett tartomány legyen, hanem szabályozott munkatér.
+
+Elv
+
+A tényleges sofőrtartományt a rendszer számolja:
+
+SOFOROK_AUTO módban a Sofőrök lap alapján
+
+plusz cfg_driver_extra_cols
+
+vagy FIXED módban fix számból
+
+Feladat
+
+Bevezetni a kanonikus sofőrtartomány-számítást.
+
+Eredmény
+
+A layout és a későbbi oszlopkezelés már nem fix B:Y logikára épül, hanem tényleges tartományra.
+
+Miért kell ez az oszlopmozgatás előtt
+
+Mert előbb tudnunk kell, mely oszlopok tartoznak a tényleges aktív térhez, csak utána szabad azokat identitás szerint rendezni.
+
+FÁZIS 4 — Render teljesítmény-optimalizálás
+Cél
+
+A lapaktiválás gyorsítása.
+
+Fókusz
+
+a layout csak a szükséges oszlop- és sortartományra fusson
+
+a protection csak a szükséges munkatérre vonatkozzon
+
+a dátumlogika csak a kezelt tartományon dolgozzon
+
+az időablakon kívüli sorok nézetileg kezelhetők legyenek
+
+Feladat
+
+Mérés alapján optimalizálni:
+
+layout
+
+protection
+
+dates
+
+Eredmény
+
+Gyorsabb aktiválás és kisebb vizuális terhelés.
+
+Kilépési feltétel
+
+A Vezénylés lap használható sebességű lesz napi működésben.
+
+FÁZIS 5 — Sofőroszlop-identitás bevezetése
+Cél
+
+A rendszer ne pozícióalapon, hanem sofőridentitás alapján kezelje az oszlopokat.
+
+Elv
+
+A Vezénylés egy oszlopának identitása:
+
+a sofőr
+nem pedig:
+
+az oszlop betűjele
+
+Feladat
+
+Bevezetni egy kanonikus megfeleltetést:
+
+melyik sofőr melyik oszlophoz tartozik
+
+melyik oszlop melyik sofőrt képviseli
+
+Eredmény
+
+Megteremtődik a biztonságos oszlopmozgatás alapja.
+
+Miért nem ezzel kezdünk
+
+Mert ehhez már kell:
+
+stabil render
+
+stabil sofőrtartomány
+
+stabil SSOT
+különben megint keveredés lesz.
+
+FÁZIS 6 — Sofőroszlop-mozgatás bevezetése
+Cél
+
+A sorrendváltozás teljes sofőroszlop-átrendezéssel történjen.
+
+Elv
+
+Ha a sorrend változik, akkor a teljes oszlopegység mozog:
+
+fejléc
+
+járműadat
+
+teljes napi adattartalom
+
+formázás
+
+megjegyzés
+
+minden kötött elem
+
+Feladat
+
+Olyan átrendezési logika készítése, amely:
+
+sofőrazonosító alapján találja meg az oszlopot
+
+új sorrend szerint helyezi át
+
+nem kever adatot
+
+Eredmény
+
+A sorrendváltoztatás többé nem okozhat adat-összekeveredést.
+
+Kilépési feltétel
+
+A fejléc és a teljes oszloptartalom együtt mozog.
+
+FÁZIS 7 — Alapjármű-kapcsolat és eltérésfelismerés
+Cél
+
+A rendszer felismerje, ha egy sofőr nem a saját alap járműkapcsolatával megy.
+
+Elv
+
+Az alapkapcsolat SSOT-ja a Sofőrök lap.
+
+Feladat
+
+sofőr → alap vontató
+
+sofőr → alap pótkocsi
+
+napi kiosztás összehasonlítása ezzel
+
+Állapotok
+
+normál
+
+eltéréses
+
+Eredmény
+
+A rendszer kanonikusan tudja kezelni az „idegen járműves” eseteket.
+
+Fontos
+
+Ez még nem duplikációkezelés.
+Ez csak eltérésfelismerés.
+
+FÁZIS 8 — Vizuális eltérésjelölés
+Cél
+
+Az eltérő járműves eseteket a felhasználó azonnal lássa.
+
+Feladat
+
+Vizualizációs szabály bevezetése:
+
+normál megjelenés
+
+eltéréses megjelenés
+
+Eredmény
+
+A fuvarszervező egyből látja, ha a sofőr nem a saját járművével ment.
+
+Miért külön fázis
+
+Mert előbb a logikai felismerésnek kell helyesnek lennie, és csak utána szabad a megjelenítést rátenni.
+
+FÁZIS 9 — Duplikációfelismerés
+Cél
+
+A rendszer felismerje az ütközéseket:
+
+sofőrduplikáció
+
+vontatóduplikáció
+
+pótkocsiduplikáció
+
+Alapértelmezett szint
+
+Első körben napi szintű ellenőrzés.
+
+Feladat
+
+Az adott napi kiosztásokon belül ellenőrizni:
+
+ugyanaz a sofőr szerepel-e több helyen
+
+ugyanaz a vontató szerepel-e több helyen
+
+ugyanaz a pótkocsi szerepel-e több helyen
+
+Eredmény
+
+A rendszer logikailag azonosítani tudja az ütköző állapotokat.
+
+Fontos
+
+Ez külön fázis legyen az eltérésfelismeréstől.
+
+FÁZIS 10 — Duplikációs jelzés és szabályszint
+Cél
+
+Dönteni arról, hogy a duplikáció:
+
+csak figyelmeztetés
+
+vagy blokkoló szabály
+
+Javasolt első ütem
+
+felismerés
+
+vizuális jelzés
+
+audit
+
+Nem rögtön tiltás.
+
+Miért
+
+Mert előbb látni kell a valós üzemi eseteket, és csak utána érdemes kemény blokkolást bevezetni.
+
+Eredmény
+
+A duplikáció látható és naplózható integritási esemény lesz.
+
+FÁZIS 11 — Auditbővítés
+Cél
+
+A fontos integritási események naplózása.
+
+Naplózandó események
+
+sofőroszlop-sorrend változás
+
+oszlopmozgatás
+
+eltéréses járműkapcsolat
+
+duplikációs esemény
+
+render során alkalmazott tartományok
+
+Eredmény
+
+A rendszer nem csak működik, hanem visszakövethető is.
+
+FÁZIS 12 — Teljes nézet / szűk nézet vezérlés
+Cél
+
+A felhasználó szükség esetén vissza tudja kapcsolni a teljes láthatóságot.
+
+Feladat
+
+A Beállítások vagy egy külön vezérlő alapján lehessen:
+
+napi munkanézet
+
+teljes nézet
+
+Eredmény
+
+A múlt és jövő bármikor újra látható, adatvesztés nélkül.
+
+FÁZIS 13 — Snapshot / archív koncepció
+Cél
+
+A Vezénylés élő munkafelület maradjon, a történeti állapot külön rétegbe kerüljön.
+
+Feladat
+
+Későbbi külön fejlesztésként:
+
+napi vagy időszakos pillanatkép
+
+csak olvasható archív lap
+
+múltbeli állapot visszakereshetősége
+
+Miért a végén
+
+Mert ez már nem a napi működés stabilizálása, hanem történeti megőrzési funkció.
+
+PRIORITÁSI LISTA — MIT ÉRDEMES ELŐSZÖR MEGCSINÁLNI
+Azonnali prioritás
+
+Fázis 1 — új beállítási kulcsok
+
+Fázis 2 — látható munkatér modell
+
+Fázis 3 — sofőrtartomány számítás
+
+Fázis 4 — render gyorsítás
+
+Második hullám
+
+Fázis 5 — oszlopidentitás
+
+Fázis 6 — teljes oszlopmozgatás
+
+Fázis 7 — alapjármű-összevetés
+
+Fázis 8 — eltérésjelölés
+
+Harmadik hullám
+
+Fázis 9 — duplikációfelismerés
+
+Fázis 10 — duplikációs szabályszint
+
+Fázis 11 — auditbővítés
+
+Külön projektág
+
+Fázis 12 — teljes nézet / szűk nézet
+
+Fázis 13 — snapshot / archív
+
+VÉGSŐ JAVASLAT
+
+A helyes következő fejlesztési sorrend szerintem ez:
+
+STEP A
+
+Először a Beállítások SSOT bővítés és a látható munkatér logika.
+
+STEP B
+
+Utána a teljesítmény-optimalizálás.
+
+STEP C
+
+Csak ezután a sofőroszlop-identitás + teljes oszlopmozgatás.
+
+STEP D
+
+Utána az eltérésfelismerés.
+
+STEP E
+
+És csak ezután a duplikációkezelés.
+
+Ez a sorrend a legbiztonságosabb, mert így mindig stabil alapon építkezünk.
+
+mi a SSOT
+
+mi a render
+
+mi az üzleti logika
+
+mi az audit
+
+mi az archív irány
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                         FELHASZNÁLÓI ESEMÉNYEK                     │
+├─────────────────────────────────────────────────────────────────────┤
+│ 1. Excel megnyitás                                                 │
+│ 2. Vezénylés lap aktiválás                                         │
+│ 3. Beállítások -> Változások érvényesítése                         │
+│ 4. Sofőr sorrend módosítás                                         │
+│ 5. Napi vezénylés szerkesztés                                      │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         ORCHESTRATION RÉTEG                         │
+├─────────────────────────────────────────────────────────────────────┤
+│ ThisWorkbook                                                       │
+│ - Workbook_Open                                                    │
+│ - Workbook_SheetActivate                                           │
+│ - csak vezérlés, nincs üzleti logika                               │
+│                                                                     │
+│ modSettingsLockAndApply                                            │
+│ - Apply gomb                                                       │
+│ - Beállítások lap védelme                                          │
+│ - render hívás                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     KANONIKUS RENDER MOTOR                          │
+├─────────────────────────────────────────────────────────────────────┤
+│ modVezenylesRender                                                 │
+│                                                                     │
+│ Public belépési pont:                                              │
+│   Render_Vezenyles_From_SSOT                                       │
+│                                                                     │
+│ Belső pipeline:                                                    │
+│   1. Config bind / validate                                        │
+│   2. Protection                                                    │
+│   3. Layout                                                        │
+│   4. Dates                                                         │
+│   5. Visible window                                                │
+│   6. Freeze                                                        │
+│   7. Audit                                                         │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+          ┌─────────────────────┼─────────────────────┐
+          │                     │                     │
+          ▼                     ▼                     ▼
+┌───────────────────┐  ┌────────────────────┐  ┌────────────────────┐
+│   SETTINGS SSOT   │  │   VIEW RENDERING   │  │   PROTECTION       │
+├───────────────────┤  ├────────────────────┤  ├────────────────────┤
+│ modSettingsSSOT   │  │ modVezenylesLayout │  │ modHeaderLock      │
+│ modFixNamedRanges │  │ modVezenylesDates  │  │                    │
+│ modSSOT           │  │ modVezenylesFreeze │  │ UIOnly protection  │
+│                   │  │ Visible window     │  │ header/date lock   │
+│ cfg_* kulcsok     │  │                    │  │                    │
+└───────────────────┘  └────────────────────┘  └────────────────────┘
+          │                     │                     │
+          └─────────────────────┴─────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        VEZÉNYLÉS MUNKATÉR                           │
+├─────────────────────────────────────────────────────────────────────┤
+│ Vezénylés lap                                                      │
+│                                                                     │
+│ Tartalma:                                                          │
+│ - dátumtengely                                                     │
+│ - sofőroszlopok                                                    │
+│ - fejléc                                                           │
+│ - napi bejegyzések                                                 │
+│ - színezések                                                       │
+│ - megjegyzések                                                     │
+│                                                                     │
+│ Fontos:                                                            │
+│ - élő munkafelület                                                 │
+│ - nem archív                                                       │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    SOFŐR / JÁRMŰ DOMAIN RÉTEG                      │
+├─────────────────────────────────────────────────────────────────────┤
+│ Sofőrök lap                                                        │
+│                                                                     │
+│ SSOT tartalom:                                                     │
+│ - sofőr neve                                                       │
+│ - saját vontató                                                    │
+│ - saját pótkocsi                                                   │
+│ - sorrend                                                          │
+│ - aktív / használható sorok                                        │
+│                                                                     │
+│ Ebből származik:                                                   │
+│ - driver_column_identity                                           │
+│ - alapjármű-kapcsolat                                              │
+│ - oszlopsorrend                                                    │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                ┌───────────────┼────────────────┐
+                │               │                │
+                ▼               ▼                ▼
+┌──────────────────────┐ ┌───────────────────┐ ┌──────────────────────┐
+│ SOFŐROSZLOP-MOZGATÁS │ │ ELTÉRÉSFIGYELÉS   │ │ DUPLIKÁCIÓFIGYELÉS   │
+├──────────────────────┤ ├───────────────────┤ ├──────────────────────┤
+│ driver identity      │ │ base vs assigned  │ │ driver duplicate     │
+│ teljes oszlop mozog  │ │ vehicle compare   │ │ vehicle duplicate    │
+│ nem csak fejléc      │ │ trailer compare   │ │ trailer duplicate    │
+│                      │ │                   │ │                      │
+│ Csomag 5-6           │ │ Csomag 7-9        │ │ Csomag 10-11         │
+└──────────────────────┘ └───────────────────┘ └──────────────────────┘
+                │               │                │
+                └───────────────┴────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                           AUDIT RÉTEG                               │
+├─────────────────────────────────────────────────────────────────────┤
+│ modAudit                                                            │
+│                                                                     │
+│ Naplózott események:                                                │
+│ - render begin / end                                                │
+│ - step OK / FAIL                                                    │
+│ - freeze state                                                      │
+│ - oszlopsorrend változás                                            │
+│ - oszlopmozgatás                                                    │
+│ - eltérés                                                           │
+│ - duplikáció                                                        │
+│ - visible window                                                    │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    JÖVŐBELI ARCHÍV / SNAPSHOT RÉTEG                 │
+├─────────────────────────────────────────────────────────────────────┤
+│ külön munkalap / külön réteg                                        │
+│                                                                     │
+│ szerepe:                                                             │
+│ - történeti pillanatkép                                             │
+│ - csak olvasható állapot                                            │
+│ - napi / időszakos mentés                                           │
+│                                                                     │
+│ Fontos:                                                              │
+│ - nem része az élő rendernek                                        │
+│ - nem a Vezénylés lap helyett van                                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+1. A diagram lényege röviden
+
+A V2-ben a rendszer nem közvetlenül a lapokat piszkálja össze-vissza, hanem rétegekre van bontva.
+
+A legfontosabb elv:
+
+a) felhasználói esemény
+
+indítja a
+
+b) orchestration réteget
+
+ami meghívja a
+
+c) render motort
+
+ami a
+
+d) SSOT-ból olvas
+
+és rárajzol a
+
+e) Vezénylés munkatérre
+
+A domain logika pedig külön van:
+
+sofőr-identitás
+
+saját jármű
+
+duplikáció
+
+Ez nagyon fontos, mert eddig pont ez folyt össze.
+
+2. Rétegenkénti értelmezés
+A. Felhasználói események
+
+Ezek indítják az egész rendszert:
+
+megnyitás
+
+lapváltás
+
+Apply gomb
+
+sorrendváltoztatás
+
+napi szerkesztés
+
+Ezek nem tartalmazhatnak üzleti logikát.
+
+Csak trigger-ek.
+
+B. Orchestration réteg
+
+Ez a rendszer „forgalomirányítója”.
+
+Mi a dolga?
+
+eseményt fogad
+
+megfelelő core eljárást hív
+
+nem dönt üzleti szabályról
+
+Mi tartozik ide?
+
+ThisWorkbook
+
+modSettingsLockAndApply
+
+Ez azért fontos, mert ha ide üzleti szabály kerül, újra kaotikus lesz a projekt.
+
+C. Kanonikus render motor
+
+Ez a V2 szíve.
+
+Egyetlen belépési pont:
+
+Render_Vezenyles_From_SSOT
+
+Minden megjelenítési logika ezen megy át.
+
+Mit csinál?
+
+configot olvas
+
+védelmet állít
+
+layoutot alkalmaz
+
+dátumokat alkalmaz
+
+látható ablakot kezeli
+
+freeze-t alkalmaz
+
+auditál
+
+Ez zárja le a „sok helyről, sokféleképp renderelünk” problémát.
+
+D. Settings SSOT
+
+Ez a konfigurációs igazság forrása.
+
+Ide tartozik:
+
+cfg_* kulcsok
+
+named range-ek
+
+kulcs-érték tábla
+
+típusos olvasás
+
+Fontos:
+
+A render, a layout, a freeze, a visible window mind innen kap paramétert.
+
+Nem szabad több külön config-olvasó világot fenntartani.
+
+E. View rendering
+
+Ez a megjelenítési motor több részből áll:
+
+layout
+
+dates
+
+freeze
+
+visible window
+
+Fontos szabály:
+
+Ezek külön modulok.
+
+Tehát:
+
+a freeze nem lehet a dates modulban
+
+a dates nem lehet a layoutban
+
+a visible window nem lehet összeöntve mindennel
+
+Ez tisztább és gyorsabb mérhetőséget ad.
+
+F. Protection
+
+A protection külön réteg.
+
+Ez azért fontos, mert a védelem:
+
+lassíthat
+
+törhet
+
+külön mérendő
+
+Nem szabad layouttal vagy freeze-zel összekeverni.
+
+G. Vezénylés munkatér
+
+Ez az élő, szerkeszthető felület.
+
+Nagyon fontos elv:
+
+Ez nem archívum.
+
+Ez az operatív tábla.
+
+Tehát itt az a cél:
+
+áttekinthetőség
+
+gyorsaság
+
+napi munka
+
+nem a teljes történelmi adattömeg egyszerre
+
+H. Sofőr / jármű domain réteg
+
+Ez a valódi üzleti logika alapja.
+
+A Sofőrök lap SSOT szerepe:
+
+ki a sofőr
+
+mi a saját vontatója
+
+mi a saját pótkocsija
+
+mi a sorrendje
+
+aktív-e
+
+Innen kell származnia minden későbbi:
+
+oszlop-identitásnak
+
+alapjármű ellenőrzésnek
+
+oszloprendezésnek
+
+I. Sofőroszlop-mozgatás
+
+Ez külön blokk, mert ez nem render, hanem adatintegritási művelet.
+
+Kulcselv:
+
+A teljes oszlop mozog.
+
+Nem fejléc-csere.
+
+Ez a blokk csak akkor biztonságos, ha már van:
+
+sofőr-identitás
+
+stabil mapping
+
+stabil render
+
+J. Eltérésfigyelés
+
+Ez a saját járműtől eltérő napi kiosztás logikája.
+
+Bemenet:
+
+alapjármű a Sofőrök lapról
+
+napi kiosztás a Vezénylés lapról
+
+Kimenet:
+
+normál
+
+eltéréses
+
+Ez üzleti logika, nem layout.
+
+K. Duplikációfigyelés
+
+Ez már keményebb integritási réteg.
+
+Figyelt entitások:
+
+sofőr
+
+vontató
+
+pótkocsi
+
+Szint:
+
+első körben napi szint
+
+Ez külön blokk, mert ezt nem szabad összekeverni az eltéréslogikával.
+
+L. Audit réteg
+
+Minden fontos esemény ide fut be.
+
+Ez azért létfontosságú, mert nélküle:
+
+nem mérhető a render
+
+nem követhető az oszlopmozgatás
+
+nem bizonyítható az eltérés/duplikáció
+
+A V2-ben az audit nem extra, hanem alaprendszer.
+
+M. Archív / snapshot réteg
+
+Ez a jövőbeli történeti réteg.
+
+Nagyon fontos, hogy nem az élő render része.
+
+Külön van, mert más célja van:
+
+múlt megőrzése
+
+visszakeresés
+
+bizonyító állapot
+
+3. Egyszerűsített adatfolyam-diagram
+
+Ez a rendszer mozgása rövidebben:
+
+Felhasználó
+   │
+   ▼
+ThisWorkbook / Apply
+   │
+   ▼
+Render_Vezenyles_From_SSOT
+   │
+   ├── Settings SSOT olvasás
+   ├── Protection
+   ├── Layout
+   ├── Dates
+   ├── Visible Window
+   ├── Freeze
+   └── Audit
+   │
+   ▼
+Vezénylés lap
+   │
+   ├── Sofőrök lap SSOT összevetés
+   ├── Oszlop identity
+   ├── Saját jármű eltérés
+   ├── Duplikáció ellenőrzés
+   └── Audit
+
+CORE
+├── ThisWorkbook.cls
+├── modVezenylesRender.bas
+├── modSettingsLockAndApply.bas
+├── modSettingsSSOT.bas
+├── modFixNamedRanges.bas
+├── modSSOT.bas
+├── modVezenylesLayout.bas
+├── modVezenylesDates.bas
+├── modVezenylesFreeze.bas
+├── modHeaderLock.bas
+└── modAudit.bas
+
+DOMAIN
+├── driver column identity
+├── driver order resolver
+├── base vehicle resolver
+├── foreign vehicle detector
+└── duplicate detector
+
+VIEW
+├── Vezénylés
+├── Beállítások
+├── Sofőrök
+└── Diag
+
+FUTURE
+└── Snapshot / Archive layer
+
+5. Hol vannak a legfontosabb SSOT pontok?
+SSOT #1 — Beállítások lap
+
+Itt van:
+
+méret
+
+freeze
+
+visible window
+
+driver source mode
+
+SSOT #2 — Sofőrök lap
+
+Itt van:
+
+sofőr identitás
+
+járműkapcsolat
+
+sorrend
+
+SSOT #3 — Vezénylés
+
+Ez már nem forrás, hanem:
+
+élő munkafelület
+
+a renderelt és szerkesztett eredmény
+
+Ez nagyon fontos megkülönböztetés.
+
+6. Mit akadályoz meg ez az architektúra?
+
+Ez a V2 diagram pont a régi hibákat zárja le:
+
+nincs több helyen kevert render
+
+nincs step2-féle mindenes modul
+
+nincs fejléc külön mozgatás
+
+nincs összeöntött layout + freeze + settings logika
+
+nincs többféle SSOT-világ
+
+nincs keverve az üzleti logika a nézettel
+
+7. Fejlesztési sorrend a diagram alapján
+
+A diagram alapján a helyes építési sorrend:
+
+Először
+
+Settings SSOT
+
+Render motor
+
+Visible window
+
+Performance
+
+Utána
+
+Sofőr identity
+
+Sofőroszlop-mozgatás
+
+Utána
+
+Base vehicle compare
+
+Eltérésjelölés
+
+Utána
+
+Duplikációkezelés
+
+Audit bővítés
+
+Legvégén
+
+Snapshot / Archive
+
+8. Végső rövid definíció
+
+A Vezénylés V2 lényege egy mondatban:
+
+A Beállítások és a Sofőrök lap SSOT alapján egyetlen render motor állít elő egy gyors, 
+élő munkafelületet, miközben az oszlopidentitás, a saját járműtől eltérés és a duplikáció 
+külön domain logikában kezelődik, auditálható módon.
+
+VEZÉNYLÉS V2 — VEZETŐI ARCHITEKTÚRA ÁTTEKINTŐ
+
+                        VEZÉNYLÉS RENDSZER (V2)
+
+┌──────────────────────────────────────────────────────────────┐
+│                       BEÁLLÍTÁSOK (SSOT)                     │
+│                                                              │
+│ • rendszer paraméterek                                       │
+│ • vezénylés mérete                                           │
+│ • látható dátumtartomány                                     │
+│ • freeze / layout                                            │
+│                                                              │
+│ Ez határozza meg a teljes rendszer működését.                │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                        RENDER MOTOR                          │
+│                                                              │
+│ Egyetlen központi folyamat rajzolja ki a vezénylést.         │
+│                                                              │
+│ lépések:                                                     │
+│ 1. beállítások betöltése                                     │
+│ 2. védelem                                                   │
+│ 3. layout                                                    │
+│ 4. dátumtengely                                              │
+│ 5. látható időablak                                          │
+│ 6. freeze                                                    │
+│                                                              │
+│ Cél: gyors és konzisztens megjelenítés.                      │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     VEZÉNYLÉS MUNKAFELÜLET                   │
+│                                                              │
+│ Operatív napi munka felülete.                                │
+│                                                              │
+│ • sofőr oszlopok                                             │
+│ • napi fuvarok                                               │
+│ • megjegyzések                                               │
+│ • jelölések                                                  │
+│                                                              │
+│ Ez NEM archív rendszer, hanem élő munkatér.                  │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     SOFŐR / JÁRMŰ ADATOK                     │
+│                         (SSOT)                               │
+│                                                              │
+│ A "Sofőrök" lap határozza meg:                               │
+│                                                              │
+│ • sofőr identitás                                            │
+│ • saját vontató                                              │
+│ • saját pótkocsi                                             │
+│ • oszlopsorrend                                              │
+│                                                              │
+│ Ez biztosítja az adatok konzisztenciáját.                    │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                       ELLENŐRZŐ RÉTEG                         │
+│                                                              │
+│ A rendszer automatikusan figyeli:                            │
+│                                                              │
+│ • sofőroszlop mozgatás (adatvesztés nélkül)                  │
+│ • saját járműtől eltérő használat                            │
+│ • sofőr / jármű duplikáció                                   │
+│                                                              │
+│ Cél: hibák és ütközések megelőzése.                          │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                        AUDIT NAPLÓ                           │
+│                                                              │
+│ A rendszer minden fontos műveletet naplóz:                   │
+│                                                              │
+│ • render folyamat                                            │
+│ • beállításváltozás                                          │
+│ • oszlopmozgatás                                             │
+│ • eltérések és duplikációk                                   │
+│                                                              │
+│ Ez biztosítja az átláthatóságot és a hibakeresést.           │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    JÖVŐBELI ARCHÍV RÉTEG                     │
+│                                                              │
+│ Tervezett funkció:                                           │
+│                                                              │
+│ • napi pillanatképek                                         │
+│ • történeti visszakeresés                                    │
+│ • módosíthatatlan mentések                                   │
+│                                                              │
+│ A múlt megőrzésére szolgál.                                  │
+└──────────────────────────────────────────────────────────────┘
+
+Vezetői összefoglaló (3 mondat)
+
+A Vezénylés V2 rendszer három alapelvre épül:
+
+1️⃣ A Beállítások és a Sofőrök lap a rendszer egyetlen igazságforrása (SSOT).
+2️⃣ Egy központi render motor rajzolja ki az operatív vezénylést.
+3️⃣ A rendszer automatikusan figyeli az eltéréseket, duplikációkat és naplózza a működést.
+
+Ennek eredménye:
+
+✔ gyorsabb működés
+✔ konzisztens adatok
+✔ biztonságos szerkesztés
+✔ visszakövethető működés
+
+mi a forrás
+
+mi történik az adatokkal
+
+hol történik logika
+
+mi kerül a Vezénylés lapra
+
+Ez a kanonikus adatút.
+
+                         FELHASZNÁLÓI ESEMÉNYEK
+                    (megnyitás / lapváltás / apply)
+                                   │
+                                   ▼
+                      ┌─────────────────────────┐
+                      │     ORCHESTRATION       │
+                      │                         │
+                      │ ThisWorkbook            │
+                      │ Apply Settings          │
+                      │ SheetActivate           │
+                      └─────────────┬───────────┘
+                                    │
+                                    ▼
+                      ┌─────────────────────────┐
+                      │     RENDER INDÍTÁS      │
+                      │                         │
+                      │ Render_Vezenyles        │
+                      │ _From_SSOT              │
+                      └─────────────┬───────────┘
+                                    │
+         ┌──────────────────────────┼──────────────────────────┐
+         │                          │                          │
+         ▼                          ▼                          ▼
+┌───────────────────┐   ┌────────────────────┐    ┌───────────────────┐
+│   BEÁLLÍTÁSOK     │   │     SOFŐRÖK        │    │   VEZÉNYLÉS       │
+│     (SSOT)        │   │      (SSOT)        │    │     (INPUT)       │
+│                   │   │                    │    │                   │
+│ cfg_* kulcsok    │   │ driver identity    │    │ napi fuvar adatok │
+│ freeze           │   │ saját vontató      │    │ szerkesztett      │
+│ layout           │   │ saját pótkocsi     │    │ cellák            │
+│ visible window   │   │ sorrend            │    │                   │
+└─────────┬─────────┘   └──────────┬─────────┘    └─────────┬─────────┘
+          │                        │                        │
+          └──────────────┬─────────┴─────────┬──────────────┘
+                         │                   │
+                         ▼                   ▼
+                ┌────────────────────────────────┐
+                │         RENDER PIPELINE        │
+                │                                │
+                │ 1  Config bind                 │
+                │ 2  Protection                  │
+                │ 3  Layout build                │
+                │ 4  Date axis                   │
+                │ 5  Visible window              │
+                │ 6  Freeze                      │
+                └───────────────┬────────────────┘
+                                │
+                                ▼
+                ┌────────────────────────────────┐
+                │        DOMAIN ELLENŐRZÉS       │
+                │                                │
+                │ Sofőr identity mapping         │
+                │ Saját jármű összehasonlítás    │
+                │ Duplikáció ellenőrzés          │
+                └───────────────┬────────────────┘
+                                │
+                                ▼
+                ┌────────────────────────────────┐
+                │        VEZÉNYLÉS RENDER        │
+                │                                │
+                │ kész oszlopstruktúra           │
+                │ dátumtengely                   │
+                │ napi fuvar cellák              │
+                │ eltérés jelölések              │
+                │ duplikáció figyelmeztetés      │
+                └───────────────┬────────────────┘
+                                │
+                                ▼
+                ┌────────────────────────────────┐
+                │            AUDIT LOG           │
+                │                                │
+                │ render begin/end               │
+                │ render lépések                 │
+                │ oszlop mozgatás                │
+                │ eltérés                        │
+                │ duplikáció                     │
+                └───────────────┬────────────────┘
+                                │
+                                ▼
+                ┌────────────────────────────────┐
+                │        SNAPSHOT / ARCHÍV       │
+                │          (jövőbeli)            │
+                │                                │
+                │ napi pillanatkép               │
+                │ történeti visszakeresés        │
+                │ nem módosítható adat           │
+                └────────────────────────────────┘
+
+Az adatfolyam magyarázata
+1️⃣ Esemény
+
+A rendszer mindig egy eseménnyel indul:
+
+Excel megnyitás
+
+Vezénylés lap aktiválás
+
+Beállítások Apply
+
+Ez nem módosít adatot, csak elindítja a render motort.
+
+2️⃣ Render indítás
+
+A rendszer egyetlen belépési ponton fut:
+
+Render_Vezenyles_From_SSOT
+
+Ez nagyon fontos szabály, mert így:
+
+nincs több külön render logika
+
+minden ugyanazon az úton megy
+
+3️⃣ A rendszer három adatforrásból dolgozik
+BEÁLLÍTÁSOK (SSOT)
+
+Itt van a rendszer konfigurációja:
+
+vezénylés méret
+
+freeze
+
+dátumtartomány
+
+látható ablak
+
+SOFŐRÖK (SSOT)
+
+Itt van a domain alap:
+
+sofőr identitás
+
+saját jármű
+
+saját pótkocsi
+
+oszlopsorrend
+
+Ez határozza meg az oszlopok logikáját.
+
+VEZÉNYLÉS (INPUT)
+
+Ez az operatív adat:
+
+napi fuvarok
+
+szerkesztett cellák
+
+megjegyzések
+
+4️⃣ Render pipeline
+
+A render motor több lépésben dolgozik.
+
+Config
+Protection
+Layout
+Dates
+Visible Window
+Freeze
+
+Ez a pipeline biztosítja, hogy a rendszer:
+
+stabil
+
+mérhető
+
+gyors
+
+5️⃣ Domain ellenőrzés
+
+Itt történik az üzleti logika.
+
+Sofőr identity
+
+Megállapítja:
+
+melyik oszlop melyik sofőré
+
+Saját jármű eltérés
+
+Összehasonlítja:
+
+alapjármű
+vs
+napi kiosztás
+
+Ha eltérés → piros jelölés.
+
+Duplikáció
+
+Figyeli:
+
+sofőr
+
+vontató
+
+pótkocsi
+
+6️⃣ Vezénylés render
+
+A végén a rendszer létrehozza a kész nézetet:
+
+oszlopok
+
+dátumok
+
+cellák
+
+jelölések
+
+Ez az a rész, amit a fuvarszervezők látnak.
+
+7️⃣ Audit
+
+Minden fontos lépés naplózva van.
+
+Például:
+
+RENDER_BEGIN
+RENDER_STEP_OK
+FREEZE_OK
+DUPLICATE_FOUND
+FOREIGN_VEHICLE
+
+Ez nélkülözhetetlen hibakereséshez.
+
+8️⃣ Snapshot / archív
+
+Ez a jövőbeli réteg.
+
+Feladata:
+
+napi mentés
+
+történeti visszakeresés
+
+audit kompatibilitás
+
+Ez nem az operatív vezénylés része.
+
+A teljes rendszer egy mondatban
+
+A Beállítások és Sofőrök SSOT adataiból a render motor előállítja az operatív Vezénylés nézetet, miközben domain ellenőrzések és audit biztosítják az adatintegritást.
+
+Ez a modell kifejezetten arra készült, hogy:
+
+az eltérés logika
+
+a duplikáció ellenőrzés
+
+a sofőroszlop-mozgatás
+
+stabilan és félreérthetetlenül működjön.
+
+Ez a kanonikus domain adatmodell.
+
+                         ┌─────────────────────┐
+                         │        SOFŐR        │
+                         │   (driver entity)   │
+                         │                     │
+                         │ driver_id           │
+                         │ driver_name         │
+                         │ default_truck       │
+                         │ default_trailer     │
+                         │ active              │
+                         └──────────┬──────────┘
+                                    │
+                                    │ 1
+                                    │
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │     SOFŐR OSZLOP    │
+                         │  (vezénylés column) │
+                         │                     │
+                         │ column_index        │
+                         │ driver_id           │
+                         │ column_visible      │
+                         │ column_order        │
+                         └──────────┬──────────┘
+                                    │
+                                    │ 1
+                                    │
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │    NAPI VEZÉNYLÉS   │
+                         │    (dispatch row)   │
+                         │                     │
+                         │ dispatch_date      │
+                         │ column_index       │
+                         │ assigned_truck     │
+                         │ assigned_trailer   │
+                         │ route / note       │
+                         └──────────┬──────────┘
+                                    │
+                                    │
+                                    │
+                ┌───────────────────┼───────────────────┐
+                │                   │                   │
+                ▼                   ▼                   ▼
+      ┌────────────────┐  ┌────────────────┐  ┌────────────────┐
+      │   TRUCK        │  │   TRAILER      │  │    ROUTE       │
+      │                │  │                │  │                │
+      │ truck_id       │  │ trailer_id     │  │ route_code     │
+      │ plate_number   │  │ plate_number   │  │ route_name     │
+      │ active         │  │ active         │  │ description    │
+      └────────────────┘  └────────────────┘  └────────────────┘
+
+A modell legfontosabb elve
+
+A vezénylés nem a sofőrt tárolja, hanem az oszlopot.
+
+Ez kulcsfontosságú.
+
+A kapcsolat így néz ki:
+
+Sofőr
+   │
+   ▼
+Sofőroszlop
+   │
+   ▼
+Napi vezénylés cella
+
+A rendszer entitásai
+1️⃣ SOFŐR
+
+A Sofőrök lap rekordja.
+
+Tartalma:
+
+driver_id
+
+driver_name
+
+default_truck
+
+default_trailer
+
+active
+
+Ez az alap identitás.
+
+2️⃣ SOFŐR OSZLOP
+
+Ez a Vezénylés táblában lévő oszlop.
+
+Fontos mezők:
+
+column_index
+driver_id
+column_order
+column_visible
+
+Ez biztosítja:
+
+a sorrendet
+
+a mappinget
+
+az oszlopmozgatás stabilitását
+
+3️⃣ NAPI VEZÉNYLÉS
+
+Ez a tényleges fuvar.
+
+Kulcs mezők:
+
+dispatch_date
+column_index
+assigned_truck
+assigned_trailer
+route
+
+Fontos:
+
+A rekord nem tartalmaz driver_id-t.
+
+A driver a column-on keresztül jön.
+
+Ez stabilabb.
+
+A kapcsolat vizuálisan
+SOFŐR
+  │
+  │ driver_id
+  ▼
+SOFŐR OSZLOP
+  │
+  │ column_index
+  ▼
+NAPI VEZÉNYLÉS
+  │
+  ├── assigned_truck
+  ├── assigned_trailer
+  └── route
+Saját jármű eltérés logika
+
+Az eltérés így számolódik:
+
+driver.default_truck
+        VS
+dispatch.assigned_truck
+
+Ha különböznek → eltérés jelölés (piros).
+
+Duplikáció ellenőrzés
+
+A duplikáció ellenőrzés mindig napon belül történik.
+
+Sofőr duplikáció
+same dispatch_date
+same driver_id
+Vontató duplikáció
+same dispatch_date
+same assigned_truck
+Pótkocsi duplikáció
+same dispatch_date
+same assigned_trailer
+Sofőroszlop mozgatás
+
+Az oszlop mozgatás lényege:
+
+column_index változik
+dispatch rekordok NEM
+
+Tehát:
+
+teljes oszlop mozog
+nem csak fejléc
+
+Ezért kell a driver_id mapping.
+
+A modell egyik legfontosabb szabálya
+
+A Vezénylés nem a sofőrt tárolja, hanem a sofőroszlopot.
+
+Ez megakadályozza:
+
+adatkeveredést
+
+rossz oszlopmozgatást
+
+hibás duplikáció számítást
+
+SOFŐR
+   │
+   │ driver_id
+   ▼
+SOFŐR OSZLOP
+   │
+   │ column_index
+   ▼
+NAPI VEZÉNYLÉS
+   │
+   ├── assigned_truck
+   ├── assigned_trailer
+   └── route
+
+Egy konkrét példa
+Sofőr: Kovács Béla
+default_truck = ABC123
+default_trailer = XYZ987
+
+A vezénylésben:
+
+2026-03-10
+column = Kovács Béla
+assigned_truck = DEF456
+
+Ekkor:
+
+ABC123 ≠ DEF456
+
+→ eltérés jelölés
+
+Miért stabil ez a modell?
+
+Ez a struktúra megakadályozza:
+
+❌ fejléc-csere miatti adatkeveredést
+❌ sofőr-azonosítás hibákat
+❌ duplikáció számítás hibákat
+❌ jármű-ellenőrzési problémákat
+
+A modell egy mondatban
+
+A Vezénylés rendszer sofőroszlop alapú adatmodellre épül, ahol a napi fuvar rekordok oszlopokon keresztül kapcsolódnak a sofőrhöz, így stabilan kezelhető a sorrend, az eltérés és a duplikáció.
+
+
+Itt a Duplikáció-ellenőrző algoritmus diagram (nap / sofőr / jármű), kifejezetten a VBA-tervezéshez.
+
+Ez a célja:
+
+pontosan meghatározni, mit kell beolvasni
+
+milyen sorrendben kell ellenőrizni
+
+hol válik el az eltérés és a duplikáció
+
+milyen kimenetet kell adni a jelöléshez és auditáláshoz
+
+Ez most kanonikus logikai algoritmus, nem kód.
+
+DUPLIKÁCIÓ-ELLENŐRZŐ ALGORITMUS DIAGRAM
+nap / sofőr / jármű / pótkocsi
+
+┌──────────────────────────────────────────────────────────────┐
+│                    DUPLIKÁCIÓ ELLENŐRZÉS                    │
+│                  (egy adott nap feldolgozása)               │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 1. NAP KIVÁLASZTÁSA                                          │
+│                                                              │
+│ Input: dispatch_date                                         │
+│                                                              │
+│ A rendszer kiválasztja az adott naphoz tartozó összes        │
+│ aktív sofőroszlopot és napi bejegyzést.                      │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 2. SOFŐROSZLOPOK BEJÁRÁSA                                    │
+│                                                              │
+│ Minden aktív oszlopra:                                       │
+│ - driver_id meghatározása                                    │
+│ - oszlophoz tartozó napi cella kiolvasása                    │
+│ - assigned_truck meghatározása                               │
+│ - assigned_trailer meghatározása                             │
+│ - route / note / státusz kiolvasása                          │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 3. ÜRES / NEM AKTÍV REKORDOK KISZŰRÉSE                       │
+│                                                              │
+│ Ha a napi cella üres vagy nem jelent aktív kiosztást,        │
+│ akkor a rekord nem kerül be az ellenőrzési halmazba.         │
+│                                                              │
+│ Eredmény: csak a tényleges napi kiosztások maradnak bent.    │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 4. NAPI ELLENŐRZÉSI LISTA FELÉPÍTÉSE                         │
+│                                                              │
+│ Minden aktív napi rekordból készül egy ellenőrzési sor:      │
+│                                                              │
+│ - dispatch_date                                              │
+│ - column_index                                               │
+│ - driver_id                                                  │
+│ - assigned_truck                                             │
+│ - assigned_trailer                                           │
+│ - route / note                                               │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+             ┌────────────────┼────────────────┐
+             │                │                │
+             ▼                ▼                ▼
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│ 5A. SOFŐR CHECK  │ │ 5B. TRUCK CHECK  │ │ 5C. TRAILER CHECK│
+├──────────────────┤ ├──────────────────┤ ├──────────────────┤
+│ csoportosítás:   │ │ csoportosítás:   │ │ csoportosítás:   │
+│ dispatch_date +  │ │ dispatch_date +  │ │ dispatch_date +  │
+│ driver_id        │ │ assigned_truck   │ │ assigned_trailer │
+│                  │ │                  │ │                  │
+│ ha darab > 1 →   │ │ ha darab > 1 →   │ │ ha darab > 1 →   │
+│ driver duplicate │ │ truck duplicate  │ │ trailer duplicate│
+└─────────┬────────┘ └─────────┬────────┘ └─────────┬────────┘
+          │                    │                    │
+          └────────────┬───────┴────────────┬──────┘
+                       │                    │
+                       ▼                    ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 6. SAJÁT JÁRMŰTŐL ELTÉRÉS ELLENŐRZÉS                         │
+│                                                              │
+│ Minden napi rekordra:                                        │
+│ - driver_id alapján alap_truck lekérdezés                    │
+│ - driver_id alapján alap_trailer lekérdezés                  │
+│                                                              │
+│ Összehasonlítás:                                             │
+│ assigned_truck   vs base_truck                               │
+│ assigned_trailer vs base_trailer                             │
+│                                                              │
+│ Eredmény:                                                    │
+│ - normal                                                     │
+│ - foreign_truck                                              │
+│ - foreign_trailer                                            │
+│ - foreign_both                                               │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 7. ÁLLAPOT-ÖSSZEFŰZÉS                                        │
+│                                                              │
+│ Minden rekord végső állapota összeáll:                       │
+│                                                              │
+│ - normal                                                     │
+│ - foreign_only                                               │
+│ - duplicate_driver                                           │
+│ - duplicate_truck                                            │
+│ - duplicate_trailer                                          │
+│ - foreign + duplicate                                        │
+│ - multiple_duplicates                                        │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 8. KIMENETI AKCIÓK                                           │
+│                                                              │
+│ A rendszer minden rekordnál eldönti:                         │
+│ - kell-e vizuális jelölés                                    │
+│ - kell-e audit sor                                           │
+│ - kell-e figyelmeztetés                                      │
+│                                                              │
+│ Első ütemben:                                                │
+│ - jelölés                                                    │
+│ - audit                                                      │
+│ - nem blokkol                                                │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 9. AUDIT NAPLÓ                                               │
+│                                                              │
+│ Naplózott események:                                         │
+│ - DRIVER_DUPLICATE                                           │
+│ - TRUCK_DUPLICATE                                            │
+│ - TRAILER_DUPLICATE                                          │
+│ - FOREIGN_TRUCK                                              │
+│ - FOREIGN_TRAILER                                            │
+│ - FOREIGN_BOTH                                               │
+└──────────────────────────────────────────────────────────────┘
+
+1. Az algoritmus lényege
+
+A rendszer egy napot egyszerre vizsgál.
+
+Nem az egész táblát egyben, hanem:
+
+kiválaszt egy napot
+
+összegyűjti az összes aktív napi kiosztást
+
+ellenőrzi az ütközéseket
+
+ellenőrzi az eltéréseket
+
+állapotot képez
+
+Ez a legtisztább és legjobban karbantartható modell.
+
+2. Input adatok
+
+Minden napi rekordhoz ez kell:
+
+dispatch_date
+
+column_index
+
+driver_id
+
+assigned_truck
+
+assigned_trailer
+
+opcionálisan route / note
+
+A duplikációhoz a lényegi mezők:
+
+nap
+
+sofőr
+
+vontató
+
+pótkocsi
+
+3. Mi kerül be az ellenőrzésbe?
+
+Csak az aktív napi kiosztások.
+
+Nem kerül be:
+
+teljesen üres cella
+
+olyan cella, ami nem jelent tényleges munkát
+
+hibás / értelmezhetetlen üres mező automatikusan csak azért, mert van oszlop
+
+Ez fontos, mert különben sok ál-ütközés lenne.
+
+4. A három párhuzamos duplikációs ellenőrzés
+4.1 Sofőr duplikáció
+
+Kulcs:
+
+dispatch_date + driver_id
+
+Ha ebből több van, akkor a sofőr ugyanarra a napra több helyen aktív.
+
+4.2 Vontató duplikáció
+
+Kulcs:
+
+dispatch_date + assigned_truck
+
+Ha ebből több van, akkor ugyanaz a vontató több helyen aktív.
+
+4.3 Pótkocsi duplikáció
+
+Kulcs:
+
+dispatch_date + assigned_trailer
+
+Ha ebből több van, akkor ugyanaz a pótkocsi több helyen aktív.
+
+5. Eltérésellenőrzés külön fut
+
+Ez nagyon fontos:
+
+A saját járműtől eltérés nem ugyanaz, mint a duplikáció.
+
+Ezért külön vizsgáljuk:
+
+a sofőr alap vontatója mi
+
+a napi kiosztás vontatója mi
+
+a sofőr alap pótkocsija mi
+
+a napi kiosztás pótkocsija mi
+
+Kimenetek
+
+normal
+
+foreign_truck
+
+foreign_trailer
+
+foreign_both
+
+6. Állapot-összefűzés
+
+A napi rekord végső státusza több komponensből állhat.
+
+Példák
+Eset 1
+
+Saját jármű, nincs ütközés
+→ normal
+
+Eset 2
+
+Nem saját vontató, nincs ütközés
+→ foreign_only
+
+Eset 3
+
+Saját jármű, de a vontató duplikált
+→ duplicate_truck
+
+Eset 4
+
+Nem saját jármű és a pótkocsi duplikált
+→ foreign + duplicate
+
+Eset 5
+
+Sofőr és vontató is duplikált
+→ multiple_duplicates
+
+Ez azért fontos, mert a való életben ezek egymás mellett is fennállhatnak.
+
+7. Kimeneti szabály
+
+Az algoritmus nem csak felismer, hanem kimenetet is gyárt.
+
+Minden napi rekordnál eldől:
+
+kap-e jelölést
+
+kap-e audit sort
+
+kap-e figyelmeztetést
+
+Első ütemben javasolt:
+
+igen, jelölés
+
+igen, audit
+
+nem, blokkolás
+
+8. Javasolt ellenőrzési sorrend
+
+Ez legyen a kanonikus sorrend:
+
+1.
+
+Nap kiválasztás
+
+2.
+
+Aktív rekordok összegyűjtése
+
+3.
+
+Driver duplicate check
+
+4.
+
+Truck duplicate check
+
+5.
+
+Trailer duplicate check
+
+6.
+
+Foreign vehicle check
+
+7.
+
+Végső státusz összeállítás
+
+8.
+
+Jelölés + audit
+
+Ez jó sorrend, mert:
+
+előbb az ütközések készülnek el
+
+utána jön az eltérés
+
+végül a teljes státusz
+
+9. Javasolt belső logikai rekord
+
+A VBA-tervezéshez célszerű minden napi rekordot fejben így kezelni:
+
+dispatch_date
+column_index
+driver_id
+assigned_truck
+assigned_trailer
+driver_duplicate
+truck_duplicate
+trailer_duplicate
+foreign_truck
+foreign_trailer
+final_status
+
+Ez nem kód, hanem a kanonikus logikai rekordforma.
+
+10. Egyszerűsített ellenőrzési pszeudó-logika
+
+Kód nélkül, logikai formában:
+
+adott nap rekordjai
+    -> üresek kiszűrése
+    -> kulcsok képzése
+    -> sofőr ismétlődések keresése
+    -> vontató ismétlődések keresése
+    -> pótkocsi ismétlődések keresése
+    -> alapjármű összevetés
+    -> állapot összeállítás
+    -> jelölés és audit
+11. Miért jó ez az algoritmus?
+
+Mert különválasztja:
+
+ütközés
+
+eltérés
+
+végső állapot
+
+Ez megakadályozza azt a tipikus hibát, hogy mindent „piros”-nak nevezünk, de nem tudjuk, miért piros.
+
+12. Végső rövid definíció
+
+A duplikáció-ellenőrző algoritmus minden napra összegyűjti az aktív kiosztásokat, külön ellenőrzi a sofőr-, vontató- és pótkocsi-ütközéseket, külön ellenőrzi a saját járműtől való eltérést, majd ezekből végső állapotot képez és auditál.
+
+milyen állapotok léteznek
+
+mikor melyikbe kerül egy napi rekord
+
+mi számít normálnak
+
+mi számít eltérésnek
+
+mi számít ütközésnek
+
+hogyan áll össze a végső státusz
+
+Ez most kanonikus logikai állapotgép, nem kód.
+
+┌──────────────────────────────────────────────────────────────┐
+│                     KEZDŐ ÁLLAPOT                           │
+│                                                              │
+│ Egy adott nap + egy adott sofőroszlop napi rekordja         │
+└──────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 1. VAN AKTÍV KIOSZTÁS?                                       │
+├──────────────────────────────────────────────────────────────┤
+│ NEM  ───────────────► EMPTY                                  │
+│ IGEN ──────────────► CHECK_BASELINE                          │
+└──────────────────────────────────────────────────────────────┘
+
+
+EMPTY
+  │
+  └──► nincs ellenőrzés
+       nincs jelölés
+       nincs duplikáció
+       nincs eltérés
+
+
+CHECK_BASELINE
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 2. SAJÁT ALAPJÁRMŰVEL MEGY?                                  │
+├──────────────────────────────────────────────────────────────┤
+│ IGEN ──────────────► BASE_OK                                 │
+│ NEM  ──────────────► FOREIGN_CHECK                           │
+└──────────────────────────────────────────────────────────────┘
+
+
+BASE_OK
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 3. VAN DUPLIKÁCIÓ?                                           │
+├──────────────────────────────────────────────────────────────┤
+│ NINCS ─────────────► NORMAL                                  │
+│ VAN   ─────────────► DUPLICATE_ONLY                          │
+└──────────────────────────────────────────────────────────────┘
+
+
+FOREIGN_CHECK
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 4. MILYEN ELTÉRÉS VAN?                                       │
+├──────────────────────────────────────────────────────────────┤
+│ csak vontató eltér     ─► FOREIGN_TRUCK                     │
+│ csak pótkocsi eltér    ─► FOREIGN_TRAILER                   │
+│ mindkettő eltér        ─► FOREIGN_BOTH                      │
+└──────────────────────────────────────────────────────────────┘
+           │                    │                     │
+           └────────────┬───────┴─────────────┬──────┘
+                        │                     │
+                        ▼                     ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 5. VAN DUPLIKÁCIÓ?                                           │
+├──────────────────────────────────────────────────────────────┤
+│ NINCS ─────────────► FOREIGN_ONLY                            │
+│ VAN   ─────────────► FOREIGN_AND_DUPLICATE                   │
+└──────────────────────────────────────────────────────────────┘
+
+
+DUPLICATE_ONLY
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 6. DUPLIKÁCIÓ TÍPUSOK                                        │
+├──────────────────────────────────────────────────────────────┤
+│ driver_duplicate                                             │
+│ truck_duplicate                                              │
+│ trailer_duplicate                                            │
+│ multiple_duplicates                                          │
+└──────────────────────────────────────────────────────────────┘
+
+
+FOREIGN_AND_DUPLICATE
+  │
+  ▼
+┌──────────────────────────────────────────────────────────────┐
+│ 7. KOMBINÁLT ÁLLAPOTOK                                       │
+├──────────────────────────────────────────────────────────────┤
+│ foreign_truck + duplicate_driver                            │
+│ foreign_truck + duplicate_truck                             │
+│ foreign_trailer + duplicate_trailer                         │
+│ foreign_both + multiple_duplicates                          │
+│ stb.                                                         │
+└──────────────────────────────────────────────────────────────┘
+
+
+VÉGSŐ ÁLLAPOTOK
+────────────────────────────────────────────────────────────────
+EMPTY
+NORMAL
+FOREIGN_TRUCK
+FOREIGN_TRAILER
+FOREIGN_BOTH
+DUPLICATE_DRIVER
+DUPLICATE_TRUCK
+DUPLICATE_TRAILER
+MULTIPLE_DUPLICATES
+FOREIGN_AND_DUPLICATE
+
+1. Az állapotgép alapelve
+
+Minden napi rekord egyetlen kiinduló pontból indul:
+
+adott nap
+
+adott sofőroszlop
+
+adott napi cellatartalom
+
+A rendszer ebből lépésenként eldönti:
+
+van-e tényleges kiosztás
+
+saját jármű-e
+
+van-e duplikáció
+
+mi a végső státusz
+
+2. Első állapot: EMPTY
+Jelentése
+
+Az adott napi rekord üres, vagy nem tekinthető aktív kiosztásnak.
+
+Következménye
+
+nincs összehasonlítás
+
+nincs eltérés
+
+nincs duplikáció
+
+nincs jelölés
+
+Ez azért fontos, hogy az üres cellák ne termeljenek hamis hibát.
+
+3. Második ág: BASE_OK
+
+Ha van aktív rekord, a rendszer először azt nézi meg:
+
+a sofőr a saját alap vontatójával és alap pótkocsijával megy-e?
+
+Ha igen, akkor a rekord alapállapotban rendben van.
+
+De ez még nem elég a végső NORMAL státuszhoz, mert még lehet duplikáció.
+
+4. Harmadik ág: FOREIGN_CHECK
+
+Ha nem a saját alapjárművel megy, akkor a rendszer eltérési ellenőrzésre lép.
+
+Ez három alcsoportot ad:
+
+FOREIGN_TRUCK
+
+Csak a vontató tér el.
+
+FOREIGN_TRAILER
+
+Csak a pótkocsi tér el.
+
+FOREIGN_BOTH
+
+Mindkettő eltér.
+
+Ez nagyon fontos, mert később a vizuális jelölés is eltérhet.
+
+5. Negyedik ág: duplikáció
+
+A duplikáció a baseline és a foreign ág után is lefut.
+
+Vagyis:
+
+lehet valami saját járműves és mégis duplikált
+
+lehet valami idegen járműves és mégis duplikált
+
+Ezért a duplikáció nem alternatívája az eltérésnek, hanem külön dimenzió.
+
+6. NORMAL állapot
+
+A rekord akkor NORMAL, ha:
+
+van aktív kiosztás
+
+nincs eltérés
+
+nincs duplikáció
+
+Ez a „minden rendben” állapot.
+
+7. DUPLICATE_ONLY állapot
+
+Ez akkor van, ha:
+
+saját járműves a kiosztás
+
+de van legalább egy duplikáció
+
+Ezen belül altípusok vannak:
+
+DUPLICATE_DRIVER
+
+DUPLICATE_TRUCK
+
+DUPLICATE_TRAILER
+
+MULTIPLE_DUPLICATES
+
+Ez már integritási figyelmeztetés.
+
+8. FOREIGN_ONLY állapot
+
+Ez akkor van, ha:
+
+a kiosztás eltér az alapjárműtől
+
+de nincs duplikáció
+
+Tehát ez nem hiba, csak kiemelt eltérés.
+
+9. FOREIGN_AND_DUPLICATE
+
+Ez a legerősebb üzemi figyelmeztetés.
+
+Azt jelenti, hogy:
+
+a sofőr nem a saját járművel dolgozik
+
+és közben ütközés is van
+
+Például:
+
+idegen vontató + duplikált vontató
+
+idegen pótkocsi + duplikált pótkocsi
+
+idegen mindkettő + többes duplikáció
+
+Ezért ezt külön kell kezelni.
+
+10. Végső állapotok kanonikus listája
+
+A fejlesztéshez ezt a végső státuszlistát javaslom.
+
+Alapállapotok
+
+EMPTY
+
+NORMAL
+
+Eltérésállapotok
+
+FOREIGN_TRUCK
+
+FOREIGN_TRAILER
+
+FOREIGN_BOTH
+
+Duplikációs állapotok
+
+DUPLICATE_DRIVER
+
+DUPLICATE_TRUCK
+
+DUPLICATE_TRAILER
+
+MULTIPLE_DUPLICATES
+
+Kombinált állapot
+
+FOREIGN_AND_DUPLICATE
+
+Ha akarjuk, a kombinált állapot később finomítható altípusokra.
+
+11. Egyszerűsített döntési fa
+
+Ez nagyon jól használható fejben:
+
+van aktív rekord?
+  nem -> EMPTY
+  igen ->
+    saját jármű?
+      igen ->
+        van duplikáció?
+          nem -> NORMAL
+          igen -> DUPLICATE_*
+      nem ->
+        milyen eltérés?
+          truck / trailer / both
+        van duplikáció?
+          nem -> FOREIGN_*
+          igen -> FOREIGN_AND_DUPLICATE
+12. Miért jó ez az állapotgép?
+
+Mert teljesen különválasztja:
+
+az üres állapotot
+
+a normál állapotot
+
+az eltérést
+
+a duplikációt
+
+a kombinált problémát
+
+Ez megakadályozza azt a tipikus hibát, hogy „minden piros, de nem tudjuk, miért”.
+
+13. Javasolt vizuális logika az állapotgép alapján
+
+Kód nélkül, csak elvi szinten:
+
+EMPTY
+
+nincs jelölés
+
+NORMAL
+
+normál megjelenés
+
+FOREIGN_*
+
+kiemelt eltérés-megjelenés
+
+DUPLICATE_*
+
+erős figyelmeztető megjelenés
+
+FOREIGN_AND_DUPLICATE
+
+legerősebb figyelmeztető megjelenés
+
+Vagyis a vizuális rendszer ennek a logikai állapotgépnek a kimenete legyen.
+
+14. Audit logika az állapotgéphez
+
+Minden állapotváltás vagy állapotképzés auditálható.
+
+Például:
+
+STATE_NORMAL
+
+STATE_FOREIGN_TRUCK
+
+STATE_DUPLICATE_TRUCK
+
+STATE_FOREIGN_AND_DUPLICATE
+
+Ez különösen hasznos lesz hibakeresésnél.
+
+15. Végső rövid definíció
+
+A napi kiosztás állapotgépe először eldönti, van-e aktív rekord, majd külön vizsgálja a saját járműtől való eltérést és a duplikációt, végül ezekből egyetlen végső státuszt képez, amely a vizuális jelölés és az audit alapja.
+
+KANONIKUS VALIDÁCIÓS SZABÁLYKÉSZLET
+Vezénylés rendszer — napi kiosztás ellenőrzés
+1. Cél
+
+A validáció célja, hogy a Vezénylés lapon szereplő napi kiosztások:
+
+értelmezhetők legyenek
+
+ne keveredjenek össze
+
+felismerhető legyen az eltérés
+
+felismerhető legyen az ütközés
+
+az operatív munka ne álljon le feleslegesen
+
+de az integritási problémák láthatóak legyenek
+
+A validáció elsődleges célja nem tiltás, hanem:
+
+felismerés
+
+jelölés
+
+audit
+
+fokozatos szigorítás lehetősége
+
+2. Validációs alapelvek
+2.1 SSOT alapelv
+
+A validáció minden összehasonlítást a kanonikus forrásokhoz képest végez:
+
+Beállítások lap = működési SSOT
+
+Sofőrök lap = sofőr / jármű / sorrend SSOT
+
+Vezénylés lap = operatív napi adat
+
+2.2 Nem veszhet el adat
+
+A validáció nem törölhet adatot.
+
+2.3 Első ütemben nem blokkol
+
+A validáció első ütemben:
+
+jelöl
+
+auditál
+
+figyelmeztethet
+
+de nem akadályozza automatikusan a napi munkát.
+
+2.4 Eltérés és hiba nem ugyanaz
+
+A saját járműtől eltérő használat:
+
+üzemszerűen előfordulhat
+
+ezért nem automatikus hiba
+
+A duplikáció:
+
+integritási probléma
+
+ezért erősebb jelzés szükséges
+
+2.5 A validáció napi szintű
+
+Alapértelmezés szerint a validáció egy adott nap napi kiosztásait vizsgálja.
+
+3. Validált entitások
+
+A rendszer a napi kiosztásokban ezeket az entitásokat validálja:
+
+sofőr
+
+vontató
+
+pótkocsi
+
+napi rekord aktivitása
+
+alapjárműhöz viszonyított eltérés
+
+azonos napon belüli duplikáció
+
+4. Állapotok és jelentésük
+4.1 EMPTY
+Jelentés
+
+Nincs aktív napi kiosztás.
+
+Rendszer teendője
+
+nincs jelölés
+
+nincs audit kötelezően
+
+nincs további duplikációs vizsgálat
+
+Súlyosság
+
+nincs
+
+4.2 NORMAL
+Jelentés
+
+Van aktív napi kiosztás, és:
+
+a sofőr a saját alap járműkapcsolatával szerepel
+
+nincs duplikáció
+
+Rendszer teendője
+
+normál megjelenítés
+
+nincs figyelmeztetés
+
+audit opcionális
+
+Súlyosság
+
+normál
+
+4.3 FOREIGN_TRUCK
+Jelentés
+
+A napi kiosztás vontatója eltér a sofőr alap vontatójától.
+
+Rendszer teendője
+
+eltérésjelölés
+
+audit ajánlott
+
+nem blokkol
+
+Súlyosság
+
+közepes, de nem hibás
+
+4.4 FOREIGN_TRAILER
+Jelentés
+
+A napi kiosztás pótkocsija eltér a sofőr alap pótkocsijától.
+
+Rendszer teendője
+
+eltérésjelölés
+
+audit ajánlott
+
+nem blokkol
+
+Súlyosság
+
+közepes, de nem hibás
+
+4.5 FOREIGN_BOTH
+Jelentés
+
+A napi kiosztásban a vontató és a pótkocsi is eltér az alapkapcsolattól.
+
+Rendszer teendője
+
+erősebb eltérésjelölés
+
+audit ajánlott
+
+nem blokkol első ütemben
+
+Súlyosság
+
+emelt, de még nem automatikusan hibás
+
+4.6 DUPLICATE_DRIVER
+Jelentés
+
+Ugyanaz a sofőr ugyanarra a napra több aktív kiosztásban szerepel.
+
+Rendszer teendője
+
+figyelmeztető jelölés
+
+audit kötelező
+
+első ütemben nem blokkol
+
+később blokkolható kategória
+
+Súlyosság
+
+magas
+
+4.7 DUPLICATE_TRUCK
+Jelentés
+
+Ugyanaz a vontató ugyanarra a napra több aktív kiosztásban szerepel.
+
+Rendszer teendője
+
+figyelmeztető jelölés
+
+audit kötelező
+
+első ütemben nem blokkol
+
+később blokkolható kategória
+
+Súlyosság
+
+magas
+
+4.8 DUPLICATE_TRAILER
+Jelentés
+
+Ugyanaz a pótkocsi ugyanarra a napra több aktív kiosztásban szerepel.
+
+Rendszer teendője
+
+figyelmeztető jelölés
+
+audit kötelező
+
+első ütemben nem blokkol
+
+később blokkolható kategória
+
+Súlyosság
+
+magas
+
+4.9 MULTIPLE_DUPLICATES
+Jelentés
+
+Egy rekordnál egyszerre több duplikáció áll fenn, például:
+
+sofőr és vontató is duplikált
+
+vontató és pótkocsi is duplikált
+
+mindhárom szinten probléma van
+
+Rendszer teendője
+
+legerősebb figyelmeztető jelölés
+
+audit kötelező
+
+kiemelt figyelmeztetés
+
+később erősen blokkolható kategória
+
+Súlyosság
+
+kritikus
+
+4.10 FOREIGN_AND_DUPLICATE
+Jelentés
+
+A rekord egyszerre:
+
+eltér a sofőr alap járműkapcsolatától
+
+és duplikációs problémát is tartalmaz
+
+Rendszer teendője
+
+kombinált, legerősebb figyelmeztető megjelenítés
+
+audit kötelező
+
+első ütemben nem blokkol
+
+később üzleti döntés szerint blokkolható
+
+Súlyosság
+
+nagyon magas
+
+5. Validációs szabályok tételesen
+5.1 Aktív rekord felismerése
+
+A rendszer csak azokat a napi cellákat validálja, amelyek tényleges aktív kiosztást jelentenek.
+
+Ha nem aktív
+
+→ EMPTY
+
+Következmény
+
+Üres rekord nem termel:
+
+eltérést
+
+duplikációt
+
+figyelmeztetést
+
+5.2 Sofőrazonosítás
+
+Minden vizsgált rekordhoz egyértelműen hozzá kell tartoznia egy sofőrnek a sofőroszlop SSOT alapján.
+
+Ha a sofőrazonosítás nem egyértelmű
+
+Ez külön technikai hibaállapot lehet a jövőben, de első körben auditlandó anomália.
+
+5.3 Alapjármű-összehasonlítás
+
+A rendszer minden aktív napi rekordnál összehasonlítja:
+
+tényleges vontató vs alap vontató
+
+tényleges pótkocsi vs alap pótkocsi
+
+Eredmény
+
+nincs eltérés → baseline OK
+
+egy vagy két eltérés → foreign állapot
+
+5.4 Sofőrduplikáció
+
+A rendszer ellenőrzi, hogy ugyanazon a napon ugyanaz a sofőr szerepel-e több aktív kiosztásban.
+
+Ha igen
+
+→ DUPLICATE_DRIVER
+
+5.5 Vontatóduplikáció
+
+A rendszer ellenőrzi, hogy ugyanazon a napon ugyanaz a vontató szerepel-e több aktív kiosztásban.
+
+Ha igen
+
+→ DUPLICATE_TRUCK
+
+5.6 Pótkocsiduplikáció
+
+A rendszer ellenőrzi, hogy ugyanazon a napon ugyanaz a pótkocsi szerepel-e több aktív kiosztásban.
+
+Ha igen
+
+→ DUPLICATE_TRAILER
+
+5.7 Többszörös duplikáció
+
+Ha egy rekord több duplikációs kategóriában is érintett, akkor:
+
+→ MULTIPLE_DUPLICATES
+
+5.8 Kombinált állapot
+
+Ha egy rekord foreign állapotú és duplikált is, akkor:
+
+→ FOREIGN_AND_DUPLICATE
+
+Ez magasabb súlyú, mint az önálló foreign
+
+| Állapot                 | Vizuális jelölés | Audit        | Figyelmeztetés | Blokkolás első ütemben |
+| ----------------------- | ---------------- | ------------ | -------------- | ---------------------- |
+| `EMPTY`                 | nem              | nem kötelező | nem            | nem                    |
+| `NORMAL`                | normál           | opcionális   | nem            | nem                    |
+| `FOREIGN_TRUCK`         | igen             | ajánlott     | nem kötelező   | nem                    |
+| `FOREIGN_TRAILER`       | igen             | ajánlott     | nem kötelező   | nem                    |
+| `FOREIGN_BOTH`          | igen, erősebb    | ajánlott     | lehetséges     | nem                    |
+| `DUPLICATE_DRIVER`      | igen             | kötelező     | igen           | nem                    |
+| `DUPLICATE_TRUCK`       | igen             | kötelező     | igen           | nem                    |
+| `DUPLICATE_TRAILER`     | igen             | kötelező     | igen           | nem                    |
+| `MULTIPLE_DUPLICATES`   | igen, legerősebb | kötelező     | igen           | nem                    |
+| `FOREIGN_AND_DUPLICATE` | igen, legerősebb | kötelező     | igen           | nem                    |
+
+
+7. Mi csak jelzés, és mi potenciális hiba
+Csak jelzés kategória
+
+FOREIGN_TRUCK
+
+FOREIGN_TRAILER
+
+FOREIGN_BOTH
+
+Ezek üzemszerűen előfordulhatnak.
+
+Potenciális hiba kategória
+
+DUPLICATE_DRIVER
+
+DUPLICATE_TRUCK
+
+DUPLICATE_TRAILER
+
+MULTIPLE_DUPLICATES
+
+FOREIGN_AND_DUPLICATE
+
+Ezek integritási kockázatot jelentenek.
+
+8. Később blokkolható szabályok
+
+A rendszer első ütemben ne blokkoljon.
+De a következő állapotok később blokkolhatóvá tehetők:
+
+8.1 Blokkolható
+
+DUPLICATE_DRIVER
+
+DUPLICATE_TRUCK
+
+DUPLICATE_TRAILER
+
+MULTIPLE_DUPLICATES
+
+8.2 Feltételesen blokkolható
+
+FOREIGN_AND_DUPLICATE
+
+8.3 Nem javasolt blokkolni
+
+FOREIGN_TRUCK
+
+FOREIGN_TRAILER
+
+FOREIGN_BOTH
+
+Mert ezek nem feltétlenül hibák.
+
+9. Audit szabályok
+Kötelezően auditlandó
+
+minden duplikáció
+
+minden kombinált foreign+duplicate állapot
+
+oszlopmozgatás
+
+sofőrazonosítási bizonytalanság
+
+Ajánlott audit
+
+foreign állapotok
+
+visible window fontos változásai
+
+render során alkalmazott aktív tartományok
+
+10. Vizuális jelölési elvek
+
+A validáció csak a logikai szabályt rögzíti, nem a végső dizájnt.
+De az elv legyen ez:
+
+Normál
+
+alap megjelenés
+
+Foreign
+
+kiemelt, de nem hibajellegű megjelenés
+
+Duplicate
+
+egyértelmű figyelmeztető megjelenés
+
+Foreign + Duplicate
+
+legerősebb megjelenés
+
+A foreign és duplicate vizuálisan nem mosódhat össze.
+
+11. Javasolt bevezetési sorrend validációhoz
+
+A validációs szabályokat is fokozatosan érdemes bevezetni.
+
+Első ütem
+
+aktív rekord felismerés
+
+foreign felismerés
+
+duplikáció felismerés
+
+audit
+
+vizuális jelölés
+
+Második ütem
+
+felhasználói figyelmeztetés
+
+összesítő diagnosztika
+
+Harmadik ütem
+
+opcionális blokkolás duplikáció esetén
+
+12. Rövid döntési szabályok
+Ha nincs aktív rekord
+
+→ ne csináljunk semmit
+
+Ha van rekord és saját jármű
+
+→ ellenőrizzük a duplikációt
+
+Ha van rekord és nem saját jármű
+
+→ jelöljük foreign-ként, majd ellenőrizzük a duplikációt
+
+Ha van duplikáció
+
+→ audit + figyelmeztető jelölés
+
+Ha foreign és duplikáció együtt van
+
+→ legerősebb figyelmeztető állapot
+
+13. Végső rövid összefoglalás
+
+A kanonikus validációs szabálykészlet szerint a napi kiosztásokat először aktivitás szerint, majd alapjárműhöz viszonyított eltérés szerint, végül duplikáció szerint kell ellenőrizni; a foreign állapot jelzés, a duplicate állapot integritási figyelmeztetés, a kombinált állapot pedig kiemelt kockázat.
+
+VEZÉNYLÉS V2 — KANONIKUS FEJLESZTÉSI DÖNTÉSI TÁBLA
+
+| Fázis | Funkció                                | Cél                                   | Kockázat | Teszt                                | Kész állapot kritérium              |
+| ----- | -------------------------------------- | ------------------------------------- | -------- | ------------------------------------ | ----------------------------------- |
+| 1     | **Settings SSOT stabilizálás**         | Minden konfiguráció egy helyen        | alacsony | beállítás módosítás → render frissül | minden render paraméter innen jön   |
+| 2     | **Render pipeline egységesítés**       | egyetlen `Render_Vezenyles_From_SSOT` | közepes  | lapváltás / apply után azonos render | nincs több külön render             |
+| 3     | **Vezénylés méret konfigurálása**      | tábla méretének szabályozása          | alacsony | sor/oszlop limit módosítás           | render csak a megadott tartományban |
+| 4     | **Visible window (dátumtartomány)**    | gyorsítás, múlt/jövő elrejtés         | közepes  | dátumtartomány változtatás           | csak aktív időablak látszik         |
+| 5     | **Sofőr identity mapping**             | stabil oszlop-sofőr kapcsolat         | magas    | sofőr sorrend módosítás              | az adatok nem keverednek            |
+| 6     | **Sofőroszlop mozgatás**               | teljes oszlop mozog                   | magas    | sorrend csere                        | fejléc + adatok együtt mozognak     |
+| 7     | **Foreign vehicle felismerés**         | nem saját jármű jelölése              | alacsony | eltérő jármű megadása                | vizuális jelölés megjelenik         |
+| 8     | **Driver duplicate ellenőrzés**        | egy sofőr több helyen                 | közepes  | egy nap két kiosztás                 | figyelmeztetés + audit              |
+| 9     | **Truck duplicate ellenőrzés**         | egy vontató több helyen               | közepes  | azonos vontató két oszlop            | figyelmeztetés + audit              |
+| 10    | **Trailer duplicate ellenőrzés**       | egy pótkocsi több helyen              | közepes  | azonos pótkocsi két oszlop           | figyelmeztetés + audit              |
+| 11    | **Állapotgép implementáció**           | státuszok egységes kezelése           | közepes  | több állapot teszt                   | státusz logika konzisztens          |
+| 12    | **Audit rendszer bővítés**             | minden fontos esemény logolása        | alacsony | esemény generálás                    | audit sor létrejön                  |
+| 13    | **Diagnosztikai nézet**                | hibák áttekintése                     | alacsony | duplikáció létrehozás                | diagnosztikai lista                 |
+| 14    | **Snapshot archív réteg**              | történeti mentés                      | közepes  | napi mentés                          | módosíthatatlan snapshot            |
+| 15    | **Validációs szigorítás (opcionális)** | duplikáció blokkolás                  | magas    | konfliktus létrehozás                | figyelmeztetés vagy tiltás          |
+
+
+Fejlesztési prioritási szintek
+P0 – alap stabilitás
+
+Ezek nélkül a rendszer nem stabil.
+
+Settings SSOT
+
+Render pipeline
+
+Vezénylés méret
+
+Visible window
+
+P1 – adatbiztonság
+
+Sofőr identity
+
+Oszlopmozgatás
+
+Ez a legnagyobb kockázatú rész, mert itt keveredhet adat.
+
+P2 – üzemi logika
+
+foreign vehicle
+
+duplikáció ellenőrzések
+
+állapotgép
+
+P3 – diagnosztika
+
+audit
+
+diagnosztikai nézet
+
+P4 – történeti rendszer
+
+snapshot archív
+
+Kockázati besorolás
+Kockázat	Jelentés
+alacsony	nem érint adatstruktúrát
+közepes	logikai változás
+magas	adatmozgatás vagy oszlopszerkezet
+Tesztelési elvek
+1. determinisztikus teszt
+
+ugyanaz a bemenet → ugyanaz az eredmény
+
+2. regressziós teszt
+
+új funkció nem ronthatja el a régi működést
+
+3. szélsőérték teszt
+
+példák:
+
+1 sofőr
+
+50 sofőr
+
+üres nap
+
+teljes nap
+
+Kritikus teszt forgatókönyvek
+Sofőr sorrend csere
+
+várt eredmény:
+
+oszlopok cserélődnek
+
+adatok együtt mozognak
+
+Idegen jármű
+
+várt eredmény:
+
+foreign státusz
+
+nincs duplikáció
+
+Duplikált vontató
+
+várt eredmény:
+
+duplicate_truck státusz
+
+audit esemény
+
+Kombinált eset
+
+várt eredmény:
+
+foreign_and_duplicate státusz
+
+Fejlesztési sorrend vizuálisan
+P0
+settings SSOT
+render pipeline
+table size
+visible window
+
+P1
+driver identity
+column move
+
+P2
+foreign vehicle
+duplicate driver
+duplicate truck
+duplicate trailer
+state machine
+
+P3
+audit
+diagnostics
+
+P4
+snapshot archive
+Mikor tekinthető késznek a rendszer
+
+A rendszer akkor tekinthető stabilnak, ha:
+
+1️⃣ a render mindig determinisztikus
+2️⃣ a sofőroszlop mozgatás nem kever adatot
+3️⃣ minden duplikáció felismerhető
+4️⃣ minden eltérés felismerhető
+5️⃣ az audit napló minden kritikus eseményt rögzít
+
+Rövid vezetői összefoglaló
+
+A fejlesztési terv négy fő lépésből áll:
+
+1️⃣ stabil render és konfiguráció
+2️⃣ adatbiztonság (sofőr-oszlop modell)
+3️⃣ üzemi validáció (eltérés + duplikáció)
+4️⃣ diagnosztika és archív rendszer
+
+Ez a sorrend minimalizálja az adatkeveredés és regresszió kockázatát.
+
+Vezénylés V2 teljes rendszer-térkép” ábrát is, ami egyetlen diagramon mutatja a teljes rendszert (SSOT, render, validáció, audit, archív).
+Ez általában az a diagram, amit később a projekt „Biblia” elejére tesznek.
+
+ezénylés V2 – teljes rendszer-térkép.
+Ez az a „Biblia-diagram”, amit általában a projekt dokumentáció elejére tesznek, mert egy ábrán mutatja a teljes rendszert:
+
+SSOT források
+
+render motor
+
+domain logika
+
+validáció
+
+audit
+
+archív
+
+Ez a kanonikus architektúra.
+
+VEZÉNYLÉS V2 — TELJES RENDSZER-TÉRKÉP
+
+                              VEZÉNYLÉS RENDSZER V2
+
+
+                    ┌────────────────────────────────────┐
+                    │          FELHASZNÁLÓ               │
+                    │                                    │
+                    │ Excel megnyitás                    │
+                    │ Vezénylés lap aktiválás            │
+                    │ Beállítás Apply                    │
+                    │ Napi szerkesztés                   │
+                    └─────────────────┬──────────────────┘
+                                      │
+                                      ▼
+
+
+                    ┌────────────────────────────────────┐
+                    │         ORCHESTRATION               │
+                    │                                    │
+                    │ ThisWorkbook                       │
+                    │ SheetActivate                      │
+                    │ ApplySettings                      │
+                    │                                    │
+                    │ feladata:                          │
+                    │ esemény → render indítás           │
+                    └─────────────────┬──────────────────┘
+                                      │
+                                      ▼
+
+
+                    ┌────────────────────────────────────┐
+                    │           RENDER MOTOR              │
+                    │                                    │
+                    │ Render_Vezenyles_From_SSOT         │
+                    │                                    │
+                    │ pipeline:                          │
+                    │ 1 config bind                      │
+                    │ 2 protection                       │
+                    │ 3 layout                           │
+                    │ 4 date axis                        │
+                    │ 5 visible window                   │
+                    │ 6 freeze                           │
+                    └───────────────┬────────────────────┘
+                                    │
+          ┌─────────────────────────┼─────────────────────────┐
+          │                         │                         │
+          ▼                         ▼                         ▼
+
+
+┌───────────────────────┐  ┌───────────────────────┐  ┌───────────────────────┐
+│      SETTINGS SSOT    │  │      DRIVER SSOT      │  │   VEZÉNYLÉS INPUT     │
+│                       │  │                       │  │                       │
+│ Beállítások lap      │  │ Sofőrök lap           │  │ Vezénylés lap         │
+│                       │  │                       │  │                       │
+│ cfg_* kulcsok        │  │ driver_id             │  │ napi cellák           │
+│ layout paraméterek   │  │ default_truck         │  │ kiosztások            │
+│ freeze               │  │ default_trailer       │  │ jegyzetek             │
+│ visible window       │  │ column_order          │  │                       │
+│ table size           │  │ active                │  │                       │
+└──────────────┬────────┘  └──────────────┬────────┘  └──────────────┬────────┘
+               │                          │                          │
+               └───────────────┬──────────┴──────────┬───────────────┘
+                               │                     │
+                               ▼                     ▼
+
+
+                   ┌────────────────────────────────────┐
+                   │        DOMAIN LOGIKA RÉTEG         │
+                   │                                    │
+                   │ driver identity mapping            │
+                   │ oszlop mozgatás logika             │
+                   │ alap jármű meghatározás            │
+                   │                                    │
+                   │ feladata:                          │
+                   │ stabil adatkapcsolatok             │
+                   └─────────────────┬──────────────────┘
+                                     │
+                                     ▼
+
+
+                   ┌────────────────────────────────────┐
+                   │            VALIDÁCIÓ                │
+                   │                                    │
+                   │ foreign vehicle check              │
+                   │ duplicate driver check             │
+                   │ duplicate truck check              │
+                   │ duplicate trailer check            │
+                   │                                    │
+                   │ állapotgép:                        │
+                   │ NORMAL                             │
+                   │ FOREIGN_*                          │
+                   │ DUPLICATE_*                        │
+                   │ FOREIGN_AND_DUPLICATE              │
+                   └─────────────────┬──────────────────┘
+                                     │
+                                     ▼
+
+
+                   ┌────────────────────────────────────┐
+                   │         VEZÉNYLÉS RENDER           │
+                   │                                    │
+                   │ kész oszlopstruktúra               │
+                   │ dátumtengely                       │
+                   │ napi fuvar cellák                  │
+                   │ eltérés jelölések                  │
+                   │ duplikáció jelölések               │
+                   └─────────────────┬──────────────────┘
+                                     │
+                                     ▼
+
+
+                   ┌────────────────────────────────────┐
+                   │             AUDIT                   │
+                   │                                    │
+                   │ render begin/end                   │
+                   │ render step log                    │
+                   │ oszlop mozgatás                    │
+                   │ foreign vehicle                    │
+                   │ duplicate események                │
+                   │                                    │
+                   │ cél:                               │
+                   │ visszakövethetőség                 │
+                   └─────────────────┬──────────────────┘
+                                     │
+                                     ▼
+
+
+                   ┌────────────────────────────────────┐
+                   │        SNAPSHOT / ARCHÍV           │
+                   │                                    │
+                   │ napi pillanatkép                   │
+                   │ múltbeli vezénylések               │
+                   │ módosíthatatlan állapot            │
+                   │                                    │
+                   │ cél:                               │
+                   │ történeti visszakeresés            │
+                   └────────────────────────────────────┘
+
+
+
+A rendszer 5 fő rétege
+1️⃣ SSOT réteg
+
+Ez a rendszer igazságforrása.
+
+Három elemből áll:
+
+Settings SSOT
+konfiguráció
+
+Driver SSOT
+sofőr-jármű kapcsolat
+
+Vezénylés input
+operatív adat
+
+2️⃣ Render motor
+
+A rendszer egyetlen rajzoló motorral működik:
+
+Render_Vezenyles_From_SSOT
+
+Ez biztosítja, hogy:
+
+minden render azonos
+
+nincs logikai széttöredezés
+
+3️⃣ Domain logika
+
+Ez az adatkapcsolatok rétege.
+
+Feladata:
+
+sofőroszlop mapping
+
+oszlopmozgatás
+
+alap jármű meghatározás
+
+Ez biztosítja, hogy az adatok ne keveredjenek.
+
+4️⃣ Validáció
+
+Ez a rendszer integritás ellenőrzése.
+
+Ellenőrzi:
+
+saját jármű eltérés
+
+sofőr duplikáció
+
+vontató duplikáció
+
+pótkocsi duplikáció
+
+Az eredmény egy állapotgép státusz.
+
+5️⃣ Audit
+
+Az audit a rendszer fekete doboza.
+
+Rögzíti:
+
+render folyamat
+
+hibák
+
+eltérések
+
+duplikációk
+
+oszlopmozgatás
+
+6️⃣ Snapshot archív
+
+Ez a jövőbeli történeti réteg.
+
+Feladata:
+
+napi pillanatkép
+
+visszakereshető múlt
+
+változtathatatlan állapot
+
+A rendszer egy mondatban
+
+A Vezénylés V2 rendszer a Beállítások és Sofőrök SSOT adataiból egy központi render motorral állítja elő az operatív vezénylést, miközben domain logika biztosítja az oszlop-identitást, a validáció felismeri az eltéréseket és duplikációkat, az audit pedig minden eseményt naplóz, a snapshot réteg pedig megőrzi a történeti állapotokat.
+
+VEZÉNYLÉS V2 — HIBARENDSZER TÉRKÉP
+hol romolhat el a rendszer
+
+                              VEZÉNYLÉS V2
+                          HIBARENDSZER TÉRKÉP
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│ 1. ESEMÉNYINDÍTÁS HIBÁK                                         │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: ThisWorkbook / Apply / SheetActivate                    │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • render nem indul el                                            │
+│ • kétszer indul el                                               │
+│ • rossz eseményre indul el                                       │
+│ • végtelen eseménylánc                                           │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • lap nem frissül                                                │
+│ • villogás / többszöri újrarajzolás                              │
+│ • lassú aktiválás                                                │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 2. SSOT HIBÁK                                                    │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: Beállítások lap / Sofőrök lap                            │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • hiányzó cfg_* kulcs                                            │
+│ • hibás értéktípus                                               │
+│ • rossz named range                                              │
+│ • hiányzó sofőr-jármű kapcsolat                                  │
+│ • hibás sorrendforrás                                            │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • rossz szélesség / magasság                                     │
+│ • hibás freeze                                                   │
+│ • rossz látható tartomány                                        │
+│ • rossz oszlopsorrend                                            │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 3. RENDER MOTOR HIBÁK                                            │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: Render_Vezenyles_From_SSOT                               │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • rossz pipeline sorrend                                         │
+│ • kimarad egy lépés                                              │
+│ • régi és új logika együtt fut                                   │
+│ • túl nagy tartomány renderelése                                 │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • fejléc eltűnik                                                 │
+│ • dátumoszlop eltűnik                                            │
+│ • freeze néha jó, néha nem                                       │
+│ • lassú render                                                   │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 4. VIEW / LAYOUT HIBÁK                                           │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: layout / dates / visible window / freeze                 │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • hidden állapot nem áll vissza                                  │
+│ • túl sok sor/oszlop kezelése                                    │
+│ • dátumtengely elcsúszik                                         │
+│ • viewport ugrik                                                 │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • fejléc nincs szem előtt                                        │
+│ • A oszlop eltűnik                                               │
+│ • lassú lapváltás                                                │
+│ • rossz munkatér                                                 │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 5. PROTECTION HIBÁK                                              │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: UIOnly / lock / unlock / protect                         │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • rossz lock tartomány                                           │
+│ • túl széles védelem                                             │
+│ • protection minden aktiváláskor túl drága                       │
+│ • szerkeszthető vagy nem szerkeszthető zónák felcserélődnek      │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • nem írható cella                                               │
+│ • írható tiltott cella                                           │
+│ • lassú aktiválás                                                │
+│ • random működés                                                 │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 6. SOFŐRIDENTITÁS / OSZLOPMODELL HIBÁK                           │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: driver mapping / column identity                         │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • sofőr és oszlop kapcsolat elveszik                             │
+│ • rossz driver -> column mapping                                 │
+│ • fejléc identitás nem egyezik az adattal                        │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • rossz sofőrhöz tartozó adatok                                  │
+│ • fejléc és oszlop tartalom szétválik                            │
+│ • sorrendmódosítás után adatkeveredés                            │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 7. OSZLOPMOZGATÁSI HIBÁK                                         │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: sofőr sorrend módosítás                                  │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • csak fejléc mozog                                              │
+│ • adat nem mozog együtt                                          │
+│ • formázás nem mozog együtt                                      │
+│ • megjegyzés / szín elveszik                                     │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • összekevert fuvarok                                            │
+│ • rossz sofőrnél jelenik meg a múlt                              │
+│ • vizuálisan jó, tartalmilag rossz                               │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 8. ELTÉRÉSFIGYELÉS HIBÁK                                         │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: base vehicle compare                                     │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • rossz alapjármű adat                                           │
+│ • rossz parsing                                                  │
+│ • truck / trailer összekeverés                                   │
+│ • foreign és duplicate összemosása                               │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • indokolatlan piros jelölés                                     │
+│ • kimarad a piros jelölés                                        │
+│ • rossz sofőrnél jelenik meg az eltérés                          │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 9. DUPLIKÁCIÓFIGYELÉS HIBÁK                                      │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: napi driver/truck/trailer check                          │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • rossz kulcsképzés                                              │
+│ • üres rekord is beleszámít                                      │
+│ • nap szerinti csoportosítás hibás                               │
+│ • driver / truck / trailer check összekeveredik                  │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • ál-duplikáció                                                  │
+│ • valódi duplikáció nem látszik                                  │
+│ • túl sok vagy túl kevés figyelmeztetés                          │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 10. ÁLLAPOTGÉP HIBÁK                                             │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: final status calculation                                 │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • wrong precedence                                               │
+│ • foreign és duplicate rossz kombináció                          │
+│ • EMPTY rekord státuszt kap                                      │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • rossz szín                                                     │
+│ • rossz státusznév                                               │
+│ • nem következetes validáció                                     │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 11. AUDIT HIBÁK                                                  │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: log / naplózás                                           │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • esemény nincs naplózva                                         │
+│ • rossz procName                                                 │
+│ • hibát OK-ként logol                                            │
+│ • túl kevés vagy túl sok log                                     │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • nem visszakövethető hiba                                       │
+│ • mérés lehetetlen                                               │
+│ • téves diagnózis                                                │
+└───────────────────────────────┬──────────────────────────────────┘
+                                │
+                                ▼
+┌──────────────────────────────────────────────────────────────────┐
+│ 12. SNAPSHOT / ARCHÍV HIBÁK                                      │
+├──────────────────────────────────────────────────────────────────┤
+│ Forrás: jövőbeli pillanatkép réteg                               │
+│                                                                  │
+│ Tipikus hibák:                                                   │
+│ • rossz időpontban ment                                          │
+│ • hiányos mentés                                                 │
+│ • módosítható archív                                             │
+│ • élő és archív adat összekeveredik                              │
+│                                                                  │
+│ Tünetek:                                                         │
+│ • múlt nem visszakereshető                                       │
+│ • archivált állapot nem hiteles                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+1. A hibarendszer lényege
+
+A rendszer hibái nem egyformák.
+Nagyon fontos különválasztani őket, mert másképp kell vizsgálni:
+
+eseményindítási hiba
+
+SSOT hiba
+
+render hiba
+
+layout/protection hiba
+
+domain logika hiba
+
+validációs hiba
+
+audit hiba
+
+Ha ezt nem választjuk szét, a hibakeresés mindig kaotikus lesz.
+
+2. A legfontosabb hibacsoportok
+A. Eseményindítási hibák
+
+Itt az a kérdés:
+
+elindult-e a render
+
+hányszor indult el
+
+jó eseményből indult-e
+
+Ez akkor gyanús, ha:
+
+villog a lap
+
+kétszer frissül
+
+nem frissül
+
+B. SSOT hibák
+
+Itt az a kérdés:
+
+jó configból dolgozik-e a rendszer
+
+jó sofőr-jármű kapcsolat van-e
+
+jó a sorrend forrása
+
+Ez akkor gyanús, ha:
+
+rossz freeze
+
+rossz szélesség
+
+rossz sorrend
+
+rossz jelölés
+
+C. Render motor hibák
+
+Itt az a kérdés:
+
+jó sorrendben futnak-e a lépések
+
+kimarad-e valami
+
+túl sokat renderel-e
+
+Ez tipikusan a „működik, de néha nem” hibák gyökere.
+
+D. View / Layout hibák
+
+Ez a képernyőn látszó hibák fő forrása.
+
+Ha itt van gond, akkor:
+
+eltűnik a fejléc
+
+nem látszik a dátum
+
+elcsúszik a nézet
+
+lassú a lap
+
+E. Protection hibák
+
+Excelben ez külön veszélyes terület.
+
+Mert lehet:
+
+rossz cella lockolva
+
+túl sok minden lockolva
+
+túl drága minden aktiváláskor
+
+Ez gyakran teljesítményhibát is okoz.
+
+F. Sofőridentitás / oszlopmodell hibák
+
+Ez az egyik legkritikusabb réteg.
+
+Ha itt romlik el a rendszer, akkor:
+
+az adatok rossz sofőrhöz kerülnek
+
+a sorrendcsere után összekeverednek a fuvarok
+
+Ez már adatintegritási kockázat.
+
+G. Oszlopmozgatási hibák
+
+Ez gyakorlatilag a legveszélyesebb üzemi hiba.
+
+Ha csak a fejléc mozog, de az oszlop nem, akkor:
+
+látszólag jó lesz
+
+valójában teljes adatkorrupció történik
+
+Ezért ezt mindig külön kell tesztelni.
+
+H. Eltérésfigyelési hibák
+
+Itt az a veszély, hogy:
+
+valós eltérés nincs jelölve
+
+vagy nem valós eltérés lesz piros
+
+Ez üzemi félreértést okoz.
+
+I. Duplikációfigyelési hibák
+
+Ez a másik fontos validációs blokk.
+
+Tipikus hibák:
+
+hamis riasztás
+
+valódi ütközés hiánya
+
+Mindkettő veszélyes.
+
+J. Állapotgép hibák
+
+Itt a rendszer már felismerte az adatokat, csak rosszul minősíti őket.
+
+Ez tipikusan ilyen tünet:
+
+rossz szín
+
+rossz státusz
+
+következetlen jelölés
+
+K. Audit hibák
+
+Ha az audit rossz, akkor a rendszer lehet, hogy működik vagy nem működik, de nem bizonyítható, mi történt.
+
+Ezért az audit hiba külön kategória.
+
+L. Snapshot / archív hibák
+
+Ez még jövőbeli réteg, de ott a fő veszély:
+
+a múlt hitelessége sérül
+
+Ezért külön hibacsoport.
+
+3. Hibakeresési sorrend — mindig ebben a sorrendben
+
+Ha valami elromlik, ezt a sorrendet érdemes követni:
+
+1.
+
+Eseményindítás
+
+2.
+
+SSOT
+
+3.
+
+Render pipeline
+
+4.
+
+Layout / Freeze / Visible window
+
+5.
+
+Protection
+
+6.
+
+Driver identity / oszlopmodell
+
+7.
+
+Eltérés / duplikáció
+
+8.
+
+Állapotgép
+
+9.
+
+Audit
+
+Ez azért jó, mert mindig az alaprendszertől haladsz a magasabb logika felé.
+
+1. A hibarendszer lényege
+
+A rendszer hibái nem egyformák.
+Nagyon fontos különválasztani őket, mert másképp kell vizsgálni:
+
+eseményindítási hiba
+
+SSOT hiba
+
+render hiba
+
+layout/protection hiba
+
+domain logika hiba
+
+validációs hiba
+
+audit hiba
+
+Ha ezt nem választjuk szét, a hibakeresés mindig kaotikus lesz.
+
+2. A legfontosabb hibacsoportok
+A. Eseményindítási hibák
+
+Itt az a kérdés:
+
+elindult-e a render
+
+hányszor indult el
+
+jó eseményből indult-e
+
+Ez akkor gyanús, ha:
+
+villog a lap
+
+kétszer frissül
+
+nem frissül
+
+B. SSOT hibák
+
+Itt az a kérdés:
+
+jó configból dolgozik-e a rendszer
+
+jó sofőr-jármű kapcsolat van-e
+
+jó a sorrend forrása
+
+Ez akkor gyanús, ha:
+
+rossz freeze
+
+rossz szélesség
+
+rossz sorrend
+
+rossz jelölés
+
+C. Render motor hibák
+
+Itt az a kérdés:
+
+jó sorrendben futnak-e a lépések
+
+kimarad-e valami
+
+túl sokat renderel-e
+
+Ez tipikusan a „működik, de néha nem” hibák gyökere.
+
+D. View / Layout hibák
+
+Ez a képernyőn látszó hibák fő forrása.
+
+Ha itt van gond, akkor:
+
+eltűnik a fejléc
+
+nem látszik a dátum
+
+elcsúszik a nézet
+
+lassú a lap
+
+E. Protection hibák
+
+Excelben ez külön veszélyes terület.
+
+Mert lehet:
+
+rossz cella lockolva
+
+túl sok minden lockolva
+
+túl drága minden aktiváláskor
+
+Ez gyakran teljesítményhibát is okoz.
+
+F. Sofőridentitás / oszlopmodell hibák
+
+Ez az egyik legkritikusabb réteg.
+
+Ha itt romlik el a rendszer, akkor:
+
+az adatok rossz sofőrhöz kerülnek
+
+a sorrendcsere után összekeverednek a fuvarok
+
+Ez már adatintegritási kockázat.
+
+G. Oszlopmozgatási hibák
+
+Ez gyakorlatilag a legveszélyesebb üzemi hiba.
+
+Ha csak a fejléc mozog, de az oszlop nem, akkor:
+
+látszólag jó lesz
+
+valójában teljes adatkorrupció történik
+
+Ezért ezt mindig külön kell tesztelni.
+
+H. Eltérésfigyelési hibák
+
+Itt az a veszély, hogy:
+
+valós eltérés nincs jelölve
+
+vagy nem valós eltérés lesz piros
+
+Ez üzemi félreértést okoz.
+
+I. Duplikációfigyelési hibák
+
+Ez a másik fontos validációs blokk.
+
+Tipikus hibák:
+
+hamis riasztás
+
+valódi ütközés hiánya
+
+Mindkettő veszélyes.
+
+J. Állapotgép hibák
+
+Itt a rendszer már felismerte az adatokat, csak rosszul minősíti őket.
+
+Ez tipikusan ilyen tünet:
+
+rossz szín
+
+rossz státusz
+
+következetlen jelölés
+
+K. Audit hibák
+
+Ha az audit rossz, akkor a rendszer lehet, hogy működik vagy nem működik, de nem bizonyítható, mi történt.
+
+Ezért az audit hiba külön kategória.
+
+L. Snapshot / archív hibák
+
+Ez még jövőbeli réteg, de ott a fő veszély:
+
+a múlt hitelessége sérül
+
+Ezért külön hibacsoport.
+
+3. Hibakeresési sorrend — mindig ebben a sorrendben
+
+Ha valami elromlik, ezt a sorrendet érdemes követni:
+
+1.
+
+Eseményindítás
+
+2.
+
+SSOT
+
+3.
+
+Render pipeline
+
+4.
+
+Layout / Freeze / Visible window
+
+5.
+
+Protection
+
+6.
+
+Driver identity / oszlopmodell
+
+7.
+
+Eltérés / duplikáció
+
+8.
+
+Állapotgép
+
+9.
+
+Audit
+
+Ez azért jó, mert mindig az alaprendszertől haladsz a magasabb logika felé.
+
+| Tünet                           | Legvalószínűbb hibazónák           |
+| ------------------------------- | ---------------------------------- |
+| lap nem frissül                 | eseményindítás, render motor       |
+| lassú aktiválás                 | render, layout, protection         |
+| eltűnik fejléc                  | layout, visible window             |
+| eltűnik dátumoszlop             | layout, dates                      |
+| rossz freeze                    | SSOT, freeze, render sorrend       |
+| sorrendcsere után adatkeveredés | driver identity, oszlopmozgatás    |
+| indokolatlan piros jelölés      | foreign check, parsing, állapotgép |
+| hiányzó duplikáció jelzés       | duplicate check, kulcsképzés       |
+| nem követhető a hiba            | audit                              |
+
+
+5. Egy mondatos vezetői definíció
+
+A hibarendszer térkép azt mutatja meg, hogy a Vezénylés V2 hibái jól elkülöníthető rétegekben keletkeznek — eseményindítás, SSOT, render, megjelenítés, protection, domain logika, validáció, audit és archív — ezért a hibakeresést mindig rétegenként, alulról felfelé kell végezni.
+
+Az alábbi értékelés három részre bontva:
+
+1️⃣ ami nagyon jó és stabil döntés
+2️⃣ ami pontosítást igényel
+3️⃣ ami kockázatos lehet Excel/VBA környezetben
+
+1️⃣ Ami kifejezetten jó döntés (nagyon stabil architektúra)
+✔ SSOT kettéválasztás
+
+Nagyon jó, hogy két SSOT van:
+
+Beállítások
+
+konfiguráció
+
+Sofőrök
+
+domain adat
+
+Ez az egyik legfontosabb stabilitási alap.
+
+Settings → működés
+Drivers → domain
+Dispatch → operatív adat
+
+Ez teljesen jó.
+
+✔ Egyetlen render belépési pont
+Render_Vezenyles_From_SSOT
+
+Ez kritikus döntés.
+
+Ez akadályozza meg a tipikus Excel/VBA káoszt:
+
+layout több helyen
+
+freeze több helyen
+
+dátum több helyen
+
+header több helyen
+
+Ez architekturálisan nagyon jó.
+
+✔ Orchestration külön réteg
+ThisWorkbook
+Apply gomb
+SheetActivate
+
+csak trigger
+
+nem logika.
+
+Ez nagyon fontos.
+
+Excel projektek 90%-a itt romlik el.
+
+✔ Render pipeline felbontása
+Config
+Protection
+Layout
+Dates
+Visible window
+Freeze
+Audit
+
+Ez nagyon tiszta pipeline.
+
+Ha ezt valóban külön modulokban tartod:
+
+modVezenylesLayout
+modVezenylesDates
+modVezenylesFreeze
+
+akkor ez nagyon jól karbantartható lesz.
+
+✔ Domain logika külön
+
+Nagyon fontos, hogy ezt külön rögzítetted:
+
+driver identity
+foreign vehicle
+duplicate detection
+
+Ez nem view logika.
+
+Ez domain logika.
+
+Ez teljesen helyes.
+
+✔ Column identity modell
+
+Ez az egyik legerősebb döntés:
+
+dispatch → column_index → driver_id
+
+nem:
+
+dispatch → driver_name
+
+Ez teszi lehetővé:
+
+oszlop mozgatás
+
+stabil mapping
+
+duplikáció számítás
+
+Ez nagyon jó modell.
+
+✔ állapotgép
+
+Az állapotgép külön definiálása:
+
+EMPTY
+NORMAL
+FOREIGN
+DUPLICATE
+FOREIGN_AND_DUPLICATE
+
+nagyon jó.
+
+Ez megakadályozza:
+
+„minden piros”
+
+problémát.
+
+2️⃣ Ami pontosítást igényel
+
+Van pár hely, ahol a dokumentum logikailag jó, de implementációs szinten még nem egyértelmű.
+
+⚠ 1 — mi számít aktív rekordnak
+
+Az algoritmusban ez szerepel:
+
+üres cella → nem aktív
+
+De Excelben ez nem elég.
+
+Példa:
+
+""      → üres
+" "     → space
+"-"     → placeholder
+"szabi" → státusz
+
+Ezért a rendszernek kell egy aktivitás definíció.
+
+Példa:
+
+IsActiveDispatch(cell)
+
+külön függvény.
+
+Ez fontos.
+
+⚠ 2 — sofőrazonosítás
+
+A dokumentumban ez szerepel:
+
+column_index → driver_id
+
+De Excelben a valóság:
+
+column_index → header cell → driver name
+
+Ezért kell egy mapping réteg:
+
+column_index
+driver_name
+driver_id
+
+Ha ez nincs, a rendszer törékeny lesz.
+
+⚠ 3 — duplikáció kulcs
+
+A dokumentum ezt mondja:
+
+dispatch_date + driver_id
+
+Ez jó.
+
+De Excelben figyelni kell:
+
+driver_id vagy driver_name?
+
+A name alapú duplikáció hibás lehet.
+
+⚠ 4 — trailer / truck normalizálás
+
+Példa:
+
+ABC123
+abc123
+ABC-123
+
+Excelben ezek különbözőek.
+
+Ezért a duplikáció ellenőrzés előtt kell:
+
+NormalizePlate()
+⚠ 5 — oszlopmozgatás
+
+A dokumentum ezt mondja:
+
+teljes oszlop mozog
+
+Excelben ez nagyon fontos:
+
+Cut column
+Insert column
+
+nem:
+
+Cells copy paste
+
+Különben:
+
+conditional format
+
+comment
+
+validation
+
+szétesik.
+
+⚠ 6 — visible window
+
+Ez a rész:
+
+visible window
+past days
+future days
+
+Excelben kétféleképpen lehet:
+
+Row.Hidden
+
+vagy
+
+Filter
+
+A filter sokkal stabilabb multi-user OneDrive környezetben.
+
+3️⃣ Ami kockázatos lehet Excel/VBA környezetben
+❗ Freeze + protection
+
+Ez a két dolog együtt:
+
+Freeze
+Protect
+UserInterfaceOnly
+
+Excelben sokszor hibás sorrendben fut.
+
+A helyes sorrend általában:
+
+Unprotect
+Apply layout
+Apply freeze
+Protect UIOnly
+❗ Worksheet_Activate render
+
+Ez szerepel a doksiban:
+
+Worksheet_Activate → ApplyLayout
+
+Ha ez túl sok dolgot csinál, a lapváltás lassú lesz.
+
+Ezért:
+
+Activate → quick check
+ha szükséges → render
+❗ OneDrive concurrency
+
+Ha 2-3 user van:
+
+Excel néha:
+
+events twice
+events delayed
+
+Ezért kell:
+
+render guard
+
+pl.
+
+Static isRendering
+4️⃣ Architektúra értékelése
+
+Őszintén:
+
+Ez a dokumentum nagyon komoly rendszerterv.
+
+Ha jól implementálod:
+
+ez a rendszer:
+
+stabil lesz
+
+bővíthető lesz
+
+diagnosztizálható lesz
+
+Ez Excel/VBA projektekhez képest extrém magas szint.
+
+5️⃣ Egyetlen komoly tanács
+
+Egyetlen dolgot javaslok hozzátenni a Bibliához.
+
+Ez hiányzik:
+
+RENDER GUARD
+If renderRunning Then Exit
+renderRunning = True
+...
+renderRunning = False
+
+különben:
+
+Activate
+Change
+Apply
+
+egymásba hívódhat.
+
+6️⃣ Végső értékelés
+
+| Terület                  | Értékelés |
+| ------------------------ | --------- |
+| SSOT modell              | ⭐⭐⭐⭐⭐     |
+| Render architektúra      | ⭐⭐⭐⭐⭐     |
+| Domain szétválasztás     | ⭐⭐⭐⭐⭐     |
+| Duplikáció modell        | ⭐⭐⭐⭐      |
+| Excel implementálhatóság | ⭐⭐⭐⭐      |
+
+Az 5 kritikus Excel/VBA hibapont
+1. ESEMÉNY-VISSZAHÍVÁSI HURKOK
+Hol fog elromlani
+
+A rendszerben több esemény lesz:
+
+Workbook_Open
+
+Workbook_SheetActivate
+
+Worksheet_Change
+
+Apply gomb
+
+esetleg sorrendmódosítás
+
+Excel/VBA-ban a leggyakoribb hiba, hogy egy esemény egy másikat indít, az meg visszahívja az elsőt.
+
+Példa:
+
+SheetActivate renderel
+
+a render ír valamit
+
+az írás Change-et indít
+
+a Change megint renderel
+
+lassulás, villogás, duplafutás, néha végtelen ciklus
+
+Tünetek
+
+lapváltáskor többször frissül
+
+villan a képernyő
+
+néha kétszer fut le ugyanaz
+
+indokolatlanul lassú
+
+random viselkedés
+
+Biblia LOCK szabály
+
+Ezt szerintem kötelező beírni a Bibliába külön pontként:
+
+LOCK — Render Guard szabály
+
+A render és a kritikus eseménykezelők reentrancy guard alatt futnak.
+
+Kötelező elv:
+
+nem indulhat el ugyanaz a render kétszer egymásba ágyazva
+
+minden kritikus belépési pontnak guardolt állapota kell legyen
+
+EnableEvents kezelés mindig páros legyen
+
+hibaágon is vissza kell állítani a guard állapotot
+
+Rövid Biblia-szöveg
+
+A render és kritikus eseménykezelők reentrancy-védettek. Ugyanazon logika nem futhat egymásba ágyazva. Eseményből indított művelet nem indíthat kontrollálatlan eseményláncot.
+
+2. FEJLÉC MOZOG, ADAT NEM MOZOG
+Hol fog elromlani
+
+Ez a legveszélyesebb üzemi hiba.
+
+Papíron már jól rögzítettétek, hogy teljes oszlop mozogjon, de implementációban nagyon könnyű elrontani:
+
+fejléc átíródik
+
+oszlopfej cserélődik
+
+de a napi cellák helyben maradnak
+
+vagy a formázás nem mozog
+
+vagy a comment / note / validation marad ott
+
+Tünetek
+
+vizuálisan helyesnek tűnik
+
+tartalmilag rossz
+
+múltbeli fuvarok rossz sofőrhöz kerülnek
+
+csak későn derül ki
+
+Biblia LOCK szabály
+
+Ezt még keményebben kell lezárni.
+
+LOCK — Teljes oszlopegység szabály
+
+Sorrendváltoztatáskor kizárólag teljes sofőroszlop-egység mozgatható.
+
+Az oszlopegység részei:
+
+fejléc 1. sor
+
+fejléc 2. sor
+
+teljes napi adatterület
+
+formázás
+
+színjelölés
+
+megjegyzés
+
+adatérvényesítés
+
+oszlophoz kötött minden vizuális/tartalmi elem
+
+Tiltott:
+
+fejléc csere
+
+név átírás
+
+részleges másolás
+
+csak értékmozgatás
+
+Rövid Biblia-szöveg
+
+Sofőrsorrend-változás esetén kizárólag teljes oszlopegység mozgatható. Fejléc külön mozgatása vagy részleges oszlopmásolás adatkorrupciónak minősül.
+
+3. SSOT-BÓL KICSÚSZÓ, REJTETT CELLACÍM-LOGIKA
+Hol fog elromlani
+
+A terv SSOT-alapú, de VBA implementáció közben nagyon könnyen visszaszivárog a „gyors megoldás”:
+
+Range("I10")
+
+Cells(2, 5)
+
+Range("B1:Y2")
+
+fix oszlophatárok
+
+fix sorhatárok
+
+Ez eleinte működik, aztán a rendszer bővülésénél szétesik.
+
+Tünetek
+
+új sofőrnél eltörik
+
+új beállításnál nem azt olvassa
+
+visible window rossz tartományra fut
+
+néha jó, néha nem
+
+Biblia LOCK szabály
+
+Ezt teljesen le kell zárni.
+
+LOCK — Nincs rejtett cellacím-szabály
+
+Kritikus üzemi logika nem támaszkodhat fix cellacímre, ha ahhoz SSOT kulcs vagy strukturált forrás tartozik.
+
+Kötelező források:
+
+beállítás = cfg_*
+
+sofőr/jármű/sorrend = Sofőrök SSOT
+
+fejléc/oszloptartomány = számolt tartomány
+
+visible window = számolt tartomány
+
+Csak technikai, jól dokumentált esetben használható fix cím.
+
+Rövid Biblia-szöveg
+
+Kritikus üzemi logika nem épülhet rejtett fix cellacímre. A rendszer kizárólag SSOT kulcsból, listából vagy számolt tartományból dolgozhat.
+
+4. FREEZE / LAYOUT / PROTECTION ROSSZ FUTÁSI SORRENDJE
+Hol fog elromlani
+
+Excelben ez a három együtt nagyon törékeny:
+
+layout
+
+freeze
+
+protection
+
+Ha rossz sorrendben futnak:
+
+a freeze néha jó, néha nem
+
+a fejléc eltűnik
+
+a dátumoszlop eltűnik
+
+a lap belassul
+
+a user nem tud oda írni, ahova kellene
+
+Tipikus hiba
+
+protect túl korán
+
+freeze túl korán
+
+hidden reset túl későn
+
+activate után viewport elugrik
+
+Biblia LOCK szabály
+
+Ez is legyen kőbe vésve.
+
+LOCK — Render sorrend szabály
+
+A Vezénylés render kötelező sorrendje:
+
+config bind / validate
+
+protection előkészítés / szükséges oldás
+
+layout
+
+dates
+
+visible window
+
+freeze
+
+végső protection
+
+audit
+
+Ettől eltérni nem szabad.
+
+Rövid Biblia-szöveg
+
+A render lépések sorrendje kanonikus és nem variálható. A freeze, layout és protection csak a rögzített pipeline szerint futhat.
+
+5. NORMALIZÁLATLAN SZÖVEG ALAPÚ ÖSSZEHASONLÍTÁS
+Hol fog elromlani
+
+Ez főleg az eltérés- és duplikációkezelésnél lesz kritikus.
+
+Excelben ugyanaz a jármű vagy pótkocsi többféleképp jelenhet meg:
+
+ABC123
+
+ABC-123
+
+abc123
+
+ABC123
+
+A B C 1 2 3
+
+Ha nyersen hasonlítod össze, hamis eltérés és hamis duplikáció lesz.
+
+Ugyanez igaz sofőrnévre is.
+
+Tünetek
+
+indokolatlan piros jelölés
+
+valódi duplikáció nem látszik
+
+ugyanaz a jármű egyszer ütközik, egyszer nem
+
+Biblia LOCK szabály
+
+Ez most még nincs elég erősen rögzítve, szerintem kötelező.
+
+LOCK — Kanonikus normalizálási szabály
+
+Minden összehasonlítás előtt a rendszer normalizálja az összehasonlított értékeket.
+
+Minimum normalizálás:
+
+trim
+
+nagybetűsítés vagy egységes case
+
+fölösleges szóköz eltávolítás
+
+rendszám/pótkocsi formátum egységesítése
+
+Duplikáció- és eltérésellenőrzés kizárólag normalizált értékeken történhet.
+
+Rövid Biblia-szöveg
+
+Sofőr, vontató és pótkocsi összehasonlítás csak normalizált értékeken történhet. Nyers cellaszöveg alapján duplikáció vagy eltérés nem állapítható meg.
+
+Ez az 5 pont miért a legfontosabb?
+
+Mert ezek adják a tipikus Excel/VBA „99%-os bukópontokat”:
+
+eseményhurok
+
+fejléc/adat szétcsúszás
+
+SSOT megkerülése
+
+rossz render sorrend
+
+rossz összehasonlítás
+
+Ha ezt az 5-öt most lezárod a Bibliában, akkor a rendszer:
+
+sokkal stabilabb lesz
+
+sokkal kevésbé lesz random
+
+a későbbi fejlesztő is nehezebben rontja el
+
+a hibakeresés fele eltűnik
+
+Javasolt új Biblia-fejezet
+
+Én ezt külön blokkban betenném így:
+
+13. IMPLEMENTÁCIÓS LOCK SZABÁLYOK
+13.1 Render Guard
+
+A render és kritikus eseménykezelők reentrancy-védettek; kontrollálatlan eseménylánc nem megengedett.
+
+13.2 Teljes oszlopegység mozgatás
+
+Sorrendváltozáskor csak teljes sofőroszlop-egység mozgatható; részleges fejléc- vagy értékcsere tilos.
+
+13.3 Nincs rejtett fix cellacím
+
+Kritikus üzemi logika kizárólag SSOT-forrásból vagy számolt tartományból dolgozhat.
+
+13.4 Kanonikus render sorrend
+
+A render pipeline sorrendje rögzített; freeze, layout és protection csak ebben a sorrendben futhat.
+
+13.5 Kanonikus normalizálás
+
+Sofőr-, vontató- és pótkocsi-összehasonlítás csak normalizált értékeken történhet.
+
+Rövid végső értékelés
+
+Ha ezt az 5 pontot most még a Biblia szintjén lezárod, akkor a rendszer architektúrája már nem csak „jó terv” lesz, hanem valóban implementálható, stabil Excel/VBA rendszerterv.
+
+
+
+Következő lépés
+Csomag 1 / Fázis 1 — Beállítási SSOT bővítés
+
+Ez lesz az első valódi implementációs lépés.
+
+Pontosan mi történik ebben a körben
+
+Bevezetjük a Bibliában rögzített új cfg_* kulcsokat a rendszerbe úgy, hogy még ne változzon meg az üzemi működés, csak a konfigurációs alap készüljön el.
+
+Új kulcsok
+
+cfg_visible_past_days
+
+cfg_visible_future_days
+
+cfg_hide_outside_window
+
+cfg_driver_extra_cols
+
+cfg_driver_source_mode
+
+cfg_driver_fixed_count
+
+Ennek a körnek a célja
+
+A kör végére a rendszer:
+
+ismeri ezeket a kulcsokat
+
+tudja őket olvasni
+
+tudja őket named range-en keresztül kezelni
+
+de még nem rejti el a sorokat
+
+még nem mozgat oszlopot
+
+még nem változtat üzemi logikát
+
+Vagyis ez egy biztonságos alapozó kör.
+
+Mi tartozik bele ebbe a csomagba
+1. Beállítások lap
+
+Az új kulcsok bekerülnek a kulcs–érték táblába.
+
+2. Named range / bind logika
+
+A rendszer újra tudja kötni ezeket is.
+
+3. Settings SSOT olvasás
+
+A modSettingsSSOT tudja:
+
+szövegként
+
+számmal
+
+booleanként
+helyesen olvasni őket.
+
+4. Audit
+
+Ha valamelyik kulcs hiányzik vagy hibás, az auditban látszódjon.
+
+Mi nem tartozik még bele
+
+Ebben a körben még nincs:
+
+visible window logika
+
+sorrejtés
+
+sofőrtartomány-számítás
+
+oszlopidentitás
+
+oszlopmozgatás
+
+foreign check
+
+duplicate check
+
+Kilépési feltétel
+
+Ez a kör akkor kész, ha:
+
+az új kulcsok ott vannak a Beállítások lapon
+
+a bind logika felveszi őket
+
+a SSOT olvasó hibátlanul kezeli őket
+
+compile zöld
+
+a jelenlegi render nem romlik el
+
+A mostani munkamód szerint a helyes első művelet
+
+Először mérés és célzott fájlismeret.
+
+Ehhez a következő körben ezek kellenek a jelenlegi, tényleges állapotból:
+
+modSettingsSSOT.bas
+
+modFixNamedRanges.bas
+
+modSettingsLockAndApply.bas
+
+Folytassuk a Vezénylés V2 fejlesztést a lezárt Biblia állapotból.
+
+Állapot:
+– A teljes architektúra (SSOT, render pipeline, duplikáció, eltérés, oszlopmozgatás) rögzítve van a Bibliában.
+– A 5 kritikus Excel/VBA LOCK szabály is bekerült.
+– A következő lépés: Fejlesztési csomag 1 – Beállítási SSOT bővítés.
+
+Cél:
+az új cfg_* kulcsok bevezetése a Beállítások SSOT-ba úgy, hogy a jelenlegi működés még ne változzon.
+
+Új kulcsok:
+cfg_visible_past_days
+cfg_visible_future_days
+cfg_hide_outside_window
+cfg_driver_extra_cols
+cfg_driver_source_mode
+cfg_driver_fixed_count
+
+Most mérési módban indulunk.
+Kérd be a szükséges fájlokat a mechanikus implementáció előtt.
+__________________________________________________________________
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+##################################################################
+
+[2026-04-07 | LOCK KIEGÉSZÍTÉS — SORSZÁM MÓDOSÍTÁS SZEMANTIKA]
+
+A korábbi “kézi átírás = swap mód” szabály helyett a kanonikus működés innentől:
+
+A Sofőrök lapon a sorszam cella kézi módosítása MOVE / INSERT szemantikájú.
+
+Jelentése:
+- a szerkesztett sor nem cserél helyet a megcélzott sorszámmal,
+- hanem a megadott új pozícióra kerül,
+- a köztes sorok egy pozícióval eltolódnak,
+- ezután a rendszer 1..N szerint újraszámozza a teljes SoforLista táblát.
+
+Következmény:
+- a “1 -> 18” művelet nem swap, hanem beszúrásos átrendezés,
+- a korábbi 2-es helyről 18-asra tett sor az új 18. pozícióba kerül,
+- a köztes sorok feljebb vagy lejjebb tolódnak a move iránya szerint.
+
+Kanonikus Vezénylés szabály:
+- a Vezénylés lapon a teljes sofőroszlop-egység mozog,
+- nem csak a fejléc,
+- nem csak a név,
+- hanem a teljes oszlop: fejléc, napi adatok, formázás, színek, megjegyzések együtt.
+
+Integritási szabály:
+- minden MOVE után kötelező a runtime SSOT integritásmérés,
+- bekötési pont: a teljes MOVE-tranzakció vége,
+- cél: a Sofőrök SSOT és a Vezénylés tényleges oszloprend egyezésének azonnali ellenőrzése.
+
+Dokumentációs felülírás:
+- a korábbi Biblia-részekben szereplő “swap” megfogalmazás történeti állapotnak tekintendő,
+- a jelenlegi kanonikus üzemi működés: MOVE / INSERT.
+
+
+
+[2026-04-21 | LOCK KIEGÉSZÍTÉS — SHAPE / GRAPHIC SZENNYEZŐDÉS ÉS OSZLOPMOZGATÁS]
+
+Root-cause tény:
+- A Vezénylés lap extrém lassulásának bizonyított fő oka a drawing rétegben felhalmozódott rejtett Graphic objektumtömeg volt.
+- Mért állapot tisztítás előtt:
+  - xl/drawings/drawing1.xml kb. 52 MB
+  - 40204 drawing anchor
+  - ebből 40200 rejtett Graphic ugyanarra az image2.png / rId4 képre mutatott
+- Tisztítás után:
+  - 4 drawing anchor maradt
+  - Graphics=0
+  - HiddenGraphics=0
+  - drawing1.xml kb. 7 KB
+
+Kanonikus tilalom:
+- Vezénylés lapon sofőroszlop mozgatásához tilos Range.Copy, Copy Destination, Paste, PasteSpecial, Cut/Paste, Duplicate vagy bármilyen olyan Excel objektummodell művelet, amely Shape/Picture/Graphic objektumot implicit módon vihet magával.
+- Temp oszlopos másolásos mozgatás nem kanonikus.
+- Objektumokkal terhelt tartományt nem szabad Excel Copy/Paste művelettel mozgatni.
+
+Kötelező jövőbeni szabály:
+- Bármilyen új oszlopmozgató implementáció előtt és után kötelező mérni:
+  - Vezénylés.Shapes.Count
+  - Type=28 Graphic darabszám
+  - Hidden Graphic darabszám
+  - mentési idő
+- Ha bármelyik MOVE után a Hidden Graphic darabszám nő, a megoldás hibás és rollbackelendő.
+
+Kanonikus állapot:
+- A copy-alapú oszlopmozgatás tiltva marad.
+- Új megoldás csak copy-mentes lehet.
+- Elfogadható irányok:
+  - cellaértékek tömbös átrendezése,
+  - formátumok célzott, property-alapú másolása,
+  - kézi színezések külön, kontrollált adatként kezelése,
+  - vagy olyan magasabb szintű SSOT/render stratégia, amely nem mozgat Excel shape-eket.
+
+Biztonsági szabály:
+- Nagy tömegű Shape/Graphic takarítást nem Excel/VBA shape.Delete ciklussal végzünk elsődlegesen, ha a darabszám tízezres nagyságrendű.
+- Ilyenkor előnyben részesített út:
+  - másolaton végzett OpenXML fájlszintű diagnózis és tisztítás,
+  - majd Excelben smoke test és mentési idő mérés.
+
+[2026-04-21 | KANONIKUS WORKBOOK BASELINE]
+
+Aktuális stabil alap:
+- Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+
+Baseline állapot:
+- Vezénylés drawing réteg:
+  - xl/drawings/drawing1.xml
+  - Anchors=4
+  - Pics=4
+  - HiddenGraphics=0
+- DiagShapePackage ideiglenes munkalap nincs a stabil alapban.
+- A régi Vezénylés_Stabil_2026.02.26.xlsm backup / történeti állapot.
+
+Következő LOCK irány:
+- A stabil CLEAN workbookból kell továbbmenni.
+- Copy-alapú sofőroszlop-mozgatás tilos.
+- Új oszloprend-kezelés csak a 2026-04-21 shape/graphic LOCK szabályok betartásával készülhet.
+
+[2026-04-21 | VBA EXPORT LOCK]
+
+Kanonikus VBA állapot:
+- A stabil CLEAN workbook tényleges VBA exportja és a vba_export mappa tartalma egyezik.
+- A vba_export.zip tartalma és a vba_export mappa tartalma egyezik.
+- Ellenőrzés módja: Excel COM export + fájlonkénti SHA256 összevetés.
+
+Tilos kanonikus VBA-részként kezelni:
+- Module1 ideiglenes Hidden Graphic cleanup modul.
+- modVezenylesShapeDiagPackage ideiglenes shape diagnosztikai modul.
+- DiagShapePackage ideiglenes munkalap.
+
+Következmény:
+- Következő fejlesztési körben a forrás-összehasonlítás alapja:
+  - Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+  - vba_export mappa
+  - vba_export.zip
+- Ezek egyező baseline-nak tekintendők.
+
+[2026-04-21 | PROJEKT STRUKTÚRA LOCK — KARCSÚ BASELINE]
+
+Felülírás a korábbi VBA export baseline-hoz képest:
+- A projektben nem tartunk külön vba_export mappát.
+- A projektben nem tartunk külön vba_export.zip fájlt.
+- A kanonikus forrás innentől:
+  - Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+  - HOL TARTUNK napló
+  - KANONIKUS BIBLIA
+
+Workbook LOCK:
+- A stabil workbookban csak üzemi munkalapok maradhatnak:
+  - Vezénylés
+  - Sofőrök
+  - Színek
+  - Fuvarok
+  - Eseménynapló
+  - Beállítások
+- Diag, DiagGraphics, DiagGraphicOrigin, DiagShapePackage és egyéb mérési lapok nem részei a kanonikus workbooknak.
+
+VBA LOCK:
+- A stabil workbookban csak üzemi modulok maradhatnak.
+- Diagnosztikai / mérési / egyszeri takarító modulok nem részei a kanonikus VBA projektnek.
+- Eltávolított kategóriák:
+  - shape/graphic diagnosztika
+  - save/VBA footprint mérés
+  - egyszeri hidden graphic cleanup
+  - exportáló Immediate modul
+  - üres vagy duplikált oszlopmozgató placeholder, ha nem hívja üzemi kód
+
+Üzemi komponens baseline:
+- Munkalapok száma: 6.
+- VBA komponensek száma: 20.
+- Vezénylés drawing réteg:
+  - Anchors=4
+  - Pics=4
+  - HiddenGraphics=0
+
+Engedélyezési szabály:
+- Ha a fejlesztés során felhasználói engedély kell, azt magyar nyelven kell kérni.
+
+Következő LOCK irány:
+- Copy-mentes sofőroszlop-sorrend kezelés.
+- Bármilyen új diagnosztikai modul vagy munkalap csak ideiglenes lehet, és lezárás után törlendő.
+
+
