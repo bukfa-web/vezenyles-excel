@@ -7652,3 +7652,40 @@ Következő LOCK irány:
 - Bármilyen új diagnosztikai modul vagy munkalap csak ideiglenes lehet, és lezárás után törlendő.
 
 
+
+[2026-04-21 | LOCK KIEGÉSZÍTÉS — SOFŐROSZLOP IDENTITÁS]
+
+Kanonikus üzleti szabály:
+- A Vezénylés lapon egy sofőr nem csak fejléc, hanem teljes oszlop-identitás.
+- Sofőrsorrend módosításkor a sofőr teljes oszlopa mozog vele.
+
+A teljes sofőroszlop részei:
+- fejléc 1. sor: sofőr neve,
+- fejléc 2. sor: vontató / pótkocsi,
+- napi beosztási cellák,
+- cellaértékek,
+- cellaformátumok,
+- palettából választott vagy kézi üzemi színezések,
+- későbbi cellaszintű állapotok, ha üzemi adatként a sofőrhöz tartoznak.
+
+Színezési LOCK:
+- A napi cellák egyedi színezései üzemi adatnak számítanak.
+- A színezések kanonikus forrása a Színek lap palettája lesz.
+- Sofőroszlop-mozgatáskor a cellaszíneknek a sofőrrel együtt kell mozogniuk.
+
+Technikai LOCK:
+- A fenti szabályt copy/paste nélkül kell megvalósítani.
+- Range.Copy, Paste, PasteSpecial, Copy Destination és temp oszlopos másolás továbbra is tilos.
+- Elfogadható megoldás csak olyan lehet, amely mérés után bizonyítja:
+  - nincs új HiddenGraphic,
+  - nem nő a Shape darabszám,
+  - a cellaértékek és színek a sofőrrel együtt mozognak,
+  - a Sofőrök SSOT és a Vezénylés oszloprend integritása megmarad.
+
+[2026-04-21 21:41:28 | LOCK IMPLEMENTÁCIÓ — COPY-MENTES SOFŐROSZLOP MOVE]
+- A kanonikus sofőroszlop-mozgató belépési pont: Move_Vezenyles_DriverColumn_ByRank.
+- Implementációs szabály: Excel objektummásolás tilos; az oszlop mozgatása cellaállapot beolvasással és visszaírással történik.
+- Kötelező megőrzés jelen körben: cellaérték/képlet, számformátum, kitöltési minta és szín, fő betű- és igazítási állapotok, zárolás.
+- A későbbi Színek lapon megadott palettaalapú egyedi cellaszínezések a kitöltési szín/pattern részeként a sofőrrel együtt mozognak.
+- Őrszabály: Shape.Count a mozgatás előtt és után nem változhat. Bármilyen eltérés hibának és kivizsgálandó objektumszaporodásnak számít.
+- Megjegyzés: ha később megjegyzés, validáció, hiperhivatkozás vagy más cellaobjektum üzemi adattá válik, annak explicit mozgatását külön LOCK-kiegészítésként kell bevezetni.

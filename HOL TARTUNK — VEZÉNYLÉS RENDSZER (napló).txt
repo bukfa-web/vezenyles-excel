@@ -1711,3 +1711,35 @@ Kanonikus folytatás:
   - copy-mentes sofőroszlop-sorrend kezelés.
   - oszlopmozgatás addig tiltva marad.
 
+
+[2026-04-21 | ÜZLETI DÖNTÉS — sofőr teljes oszlopa mozog]
+
+Döntés:
+- Ha a Sofőrök lapon a sofőrsorrend változik, akkor a Vezénylés lapon a sofőr teljes oszlopa menjen vele.
+- Nem csak a fejléc változik.
+- Nem csak a név/járműsor változik.
+- A teljes sofőroszlop identitása mozog:
+  - fejléc,
+  - napi beosztási cellák,
+  - cellaértékek,
+  - kézi / palettából választott cellaszínezések,
+  - későbbi cellaállapotok, amennyiben üzemi adatként a sofőrhöz tartoznak.
+
+Jövőbeni színezési irány:
+- A napi cellákban egyedi színezések lesznek.
+- A színezések forrása a Színek lap palettája lesz.
+- Következmény: az oszlopmozgatásnak nem szabad elveszítenie vagy összekevernie a cellák egyedi színeit.
+
+Technikai következmény:
+- A copy/paste alapú oszlopmozgatás továbbra is tiltott.
+- Az új megoldásnak copy-mentesen kell mozgatnia a teljes sofőroszlop üzemi tartalmát.
+- A megoldás tervezésénél a cellaértékek mellett a cellaformátumok és színek megőrzése is kötelező szempont.
+
+[2026-04-21 21:41:28 | MEGVALÓSÍTÁS — copy-mentes sofőroszlop mozgatás]
+- Az éles CLEAN munkafüzetben a modColumnMove újra aktív.
+- A korábbi blokkoló MsgBox kikerült; a belépési pont változatlan: Move_Vezenyles_DriverColumn_ByRank.
+- A mozgatás nem használ Range.Copy / Paste / PasteSpecial / Copy Destination / temp oszlopos másolást.
+- A sofőrhöz tartozó Vezénylés-oszlop cellaállapot alapján mozog: érték/képlet, számformátum, kitöltési pattern/szín, fő betű- és igazítási állapotok, zárolás.
+- A művelet előtt és után Shape.Count ellenőrzés fut; eltérés esetén auditált hiba keletkezik.
+- Temp teszt eredménye: B->D próbamozgatásnál az értékek és kitöltési színek együtt mozogtak, Shape.Count 4 -> 4 maradt.
+- Mért temp futás: kb. 11,0 s három sofőroszlop érintésével; későbbi fókusz lehet célzott teljesítményoptimalizálás.
