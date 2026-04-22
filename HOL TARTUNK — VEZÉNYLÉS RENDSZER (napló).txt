@@ -2357,3 +2357,93 @@ Következő lépés — mérnöki döntési pont:
 5. Kivizsgálni a Vezénylés tartományt:
    - miért A1:BU1083 a használt tartomány, ha cfg_data_last_row = 370.
 6. Csak ezek után nyúlunk VBA-hoz vagy workbook-struktúrához.
+
+[2026-04-22 | DÖNTÉS + IMPLEMENTÁCIÓ — ESEMÉNYNAPLÓ MEZŐK ÉS cfg_audit_max_rows]
+
+Eseménynapló kanonikus mezői — döntés:
+- A tényleges CLEAN workbookban lévő tblEsemenynaplo mezősora marad a kanonikus aktuális audit séma:
+  - ts
+  - severity
+  - action
+  - target
+  - details
+  - proc
+- Indok:
+  - ez a működő workbook tényleges sémája,
+  - a meglévő audit kód és adatok ehhez igazodnak,
+  - nem vezetünk be sémamigrációt addig, amíg nincs rá konkrét üzemi igény.
+- A korábbi Biblia-mezők történeti/tervezési állapotnak tekintendők:
+  - ts
+  - user
+  - sheet
+  - action
+  - target
+  - details
+- User/sheet mező bővítés:
+  - első körben nem kötelező,
+  - később külön LOCK-kiegészítésként bevehető,
+  - addig a target/details/proc mezők hordozzák a szükséges kontextust.
+
+cfg_audit_max_rows bevezetése:
+- A Beállítások lapon új kulcs felvéve:
+  - cfg_audit_max_rows
+  - érték: 5000
+  - megjegyzés: Eseménynapló maximális élő sorai
+- Workbook-szintű named range létrehozva:
+  - cfg_audit_max_rows -> Beállítások!$I$17
+- A módosítás Excel COM-on keresztül történt, a workbook mentve lett.
+- A módosítás előtt biztonsági másolat készült a helyi munkamappába.
+
+Audit retenció — aktuális LOCK:
+- A 5000 soros limit első körben figyelmeztetési/őrszabály.
+- Nem törlünk automatikusan audit sorokat.
+- Limit túllépéskor a rendszernek később figyelmeztetnie kell, hogy archiválás szükséges.
+- Automatikus ritkítás csak későbbi archív/snapshot réteg után vezethető be.
+
+Freeze eltérés kivizsgálása:
+- Korábbi mérés:
+  - cfg_freeze_cell = B3
+  - openpyxl freeze_panes = B103
+- OpenXML kivizsgálás:
+  - xSplit = 1
+  - ySplit = 2
+  - topLeftCell = B103
+  - state = frozenSplit
+- Értelmezés:
+  - a tényleges fagyasztás B3 logikájú: 1 oszlop + 2 sor van rögzítve,
+  - a B103 a mentett görgetési/nézeti top-left állapot,
+  - ez nem SSOT-sérülés, hanem mentett nézetpozíció.
+- Következmény:
+  - nem javítjuk vakon,
+  - később a render/freeze apply ellenőrzésnél külön lehet kezelni, hogy mentéskor milyen topLeftCell maradjon.
+
+Vezénylés tartományeltérés kivizsgálása:
+- Korábbi mérés:
+  - cfg_data_last_row = 370
+  - Vezénylés használt tartomány: A1:BU1083 / OpenXML-ben A1:CM1083
+- Sorvizsgálat:
+  - a tényleges dátum/fuvar tartalom kb. a 370-es tartományig értelmezhető,
+  - 373-tól a mintasorok üresek, de rejtettek/formázottak,
+  - a nagy UsedRange valószínűleg korábbi formázás/rejtés/használt cella maradvány.
+- Értelmezés:
+  - cfg_data_last_row továbbra is a kanonikus kezelt adattér felső határa,
+  - a nagy Excel UsedRange nem tekintendő üzemi adattérnek,
+  - ezt később külön cleanup/performance feladatként lehet vizsgálni.
+- Következmény:
+  - most nem törlünk sorokat/oszlopokat,
+  - nem módosítunk tartományt automatikusan,
+  - előbb külön UsedRange cleanup terv kell, ha ez teljesítmény- vagy fájlméretgondot okoz.
+
+Visszamérés:
+- cfg_audit_max_rows megjelent a Beállítások cfg listában.
+- cfg_audit_max_rows named range létezik.
+- Eseménynapló továbbra is A1:F2001 tartományú, 2001 nem üres sorral.
+- Excel folyamat nem maradt nyitva.
+
+Következő implementációs irány:
+- Audit limit olvasása a Settings SSOT-ból.
+- Audit írás után sorcount ellenőrzés.
+- Ha rows > cfg_audit_max_rows:
+  - audit warning / diagnosztikai jelzés,
+  - nincs automatikus törlés.
+- Ezt kis, célzott VBA patchként kell megvalósítani a modAudit környékén.
