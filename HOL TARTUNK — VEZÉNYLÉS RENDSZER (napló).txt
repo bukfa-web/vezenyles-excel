@@ -2591,3 +2591,34 @@ Munkamód LOCK a folytatáshoz:
 - Eseménynaplóból nincs automatikus törlés.
 - Excel Copy/Paste alapú strukturális művelet továbbra is tiltott.
 - Minden érdemi változás után naplófrissítés, commit és push.
+
+[2026-04-22 18:38:01 | STABILIZÁLÁS — WORKBOOK NORMÁL MEGNYITÁS / AUDIT RETENCIÓ VÁLTOZATLAN]
+
+Felhasználói döntés:
+- A modAudit jelenlegi retenciós működése most marad.
+- Az AUDIT_MAX_ROWS = 2000 konstans és az Audit_Trim régi sorokat törlő működése ebben a körben nem módosult.
+- A cfg_audit_max_rows alapú figyelmeztető logikát most nem vezetjük be.
+
+Megnyitási probléma:
+- A GitHubról lehúzott CLEAN workbookot Excel COM normál Workbooks.Open hívással nem lehetett megnyitni.
+- Repair-open módban megnyílt, majd normál Excel mentéssel stabil példány készült.
+- A stabil példány normál Excel COM megnyitással már megnyílik.
+
+Élesítés:
+- A normál Excel által újramentett, visszamért példány került a kanonikus CLEAN workbook helyére.
+- Nem történt célzott VBA logikai módosítás.
+- modAudit ellenőrzés: AUDIT_MAX_ROWS = 2000, Audit_Trim és ListRows(1).Delete továbbra is jelen van.
+
+Visszamérés az éles workbookon:
+- Normál COM open: OK.
+- ReadOnly: False.
+- Lapok száma: 6.
+- Eseménynapló tartomány: A1:F2001.
+- Eseménynapló adatsor: 2000.
+- cfg_audit_max_rows továbbra is 5000.
+- Vezénylés Shape.Count: 4.
+- OpenXML kontroll: repairLoad nincs, functionGroups nincs, Vezénylés dimension A1:CM372, drawing twoCellAnchor=4, pic=4, graphicFrame=0.
+
+Következmény:
+- A munkafüzet COM/Excel automatizálási alapja stabilabb.
+- Az audit-retenció üzleti/technikai szabályát külön későbbi döntésig nem módosítjuk.

@@ -7689,3 +7689,17 @@ Technikai LOCK:
 - A későbbi Színek lapon megadott palettaalapú egyedi cellaszínezések a kitöltési szín/pattern részeként a sofőrrel együtt mozognak.
 - Őrszabály: Shape.Count a mozgatás előtt és után nem változhat. Bármilyen eltérés hibának és kivizsgálandó objektumszaporodásnak számít.
 - Megjegyzés: ha később megjegyzés, validáció, hiperhivatkozás vagy más cellaobjektum üzemi adattá válik, annak explicit mozgatását külön LOCK-kiegészítésként kell bevezetni.
+
+[2026-04-22 18:38:01 | LOCK PONTOSÍTÁS — AUDIT RETENCIÓ ÉS WORKBOOK MEGNYITHATÓSÁG]
+
+Aktuális döntés:
+- A modAudit jelenlegi retenciós működése átmenetileg kanonikusnak tekintendő.
+- AUDIT_MAX_ROWS = 2000 és Audit_Trim régi sor törlés jelenleg marad.
+- cfg_audit_max_rows létezik a Beállítások SSOT-ban, de a figyelmeztető-only működés bevezetése külön későbbi döntési/implementációs kör.
+
+Stabilitási szabály:
+- A kanonikus CLEAN workbooknak normál Excel megnyitással és Excel COM Workbooks.Open hívással is nyithatónak kell lennie.
+- Ha repair-open szükséges, azt stabilizálási hibának kell tekinteni, és csak visszamért, normál újramentett példány élesíthető.
+
+Mérési elv:
+- Stabilizálás után kötelező ellenőrizni: lapok száma, Eseménynapló tartomány/sorcount, cfg kulcsok, Vezénylés Shape.Count, drawing anchor/pic darabszám.
