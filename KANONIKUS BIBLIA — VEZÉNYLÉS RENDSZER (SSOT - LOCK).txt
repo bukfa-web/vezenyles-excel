@@ -7815,3 +7815,26 @@ Paletta-formátum szabály:
 - A Színek lap C oszlopa nemcsak hex kód, hanem alkalmazási minta is.
 - Sötét kitöltésű palettaszínhez olvasható világos betűszín tartozik.
 - Fehér kitöltésű állapotoknál a betűszín hordozhat üzemi különbséget.
+
+[2026-04-22 21:15:00 | LOCK PONTOSÍTÁS — BIZTONSÁGI PILLANATKÉP]
+
+Kanonikus pillanatkép szabály:
+- A biztonsági pillanatkép munkafüzeten belül tárolódik, nem külső fájlként.
+- A technikai lap neve: _Pillanatkep.
+- A _Pillanatkep lap xlSheetVeryHidden állapotú, szükséges rendszerkomponens, nem törlendő felesleges munkalap.
+- Mindig az utolsó pillanatkép az érvényes; történeti snapshot-sorozat jelenleg nem kanonikus.
+
+Kötelezően mentett adatkör:
+- Sofőrök/SoforLista tartomány.
+- Vezénylés aktuális kezelt tartomány.
+- Érték/képlet, számformátum, kitöltésszín, kitöltési minta, betűszín.
+
+Audit szabály:
+- Pillanatkép indítás: SNAPSHOT_BEGIN.
+- Sikeres pillanatkép: SNAPSHOT_END.
+- Hiba: SNAPSHOT_ERROR.
+- Smoke visszamérés: SNAPSHOT_SMOKE.
+
+UI szabály:
+- A Beállítások lapon külön gomb használható: Pillanatkep keszitese.
+- A gomb OnAction célja: Snapshot_CreateSafetyPoint.
