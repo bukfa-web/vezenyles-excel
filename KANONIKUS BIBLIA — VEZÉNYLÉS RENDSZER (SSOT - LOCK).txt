@@ -7730,3 +7730,15 @@ Aktuális implementáció:
 - modAudit központi Audit_ShouldSuppress függvényt használ.
 - A szűrés csak sevINFO esetén érvényes.
 - AUDIT_MAX_ROWS=2000 és Audit_Trim továbbra is változatlanul marad.
+
+[2026-04-22 19:40:12 | LOCK PONTOSÍTÁS — cfg_data_last_row ÉRTELMEZÉS]
+
+Kanonikus értelmezés:
+- cfg_data_last_row a kezelt napok/adatsorok száma, nem közvetlen munkalapsorszám.
+- A Vezénylés technikai utolsó kezelt sora: 2 + cfg_data_last_row.
+- Minden viewport, láthatóság, scroll area, layout és dátumlogika ezt az értelmezést köteles használni.
+
+Mért javítás:
+- modVisibleWindow javítva, hogy a 2 fejlécsorral korrigált utolsó sort használja.
+- Beállítások funkcionális visszamérés: 8/8 teszt zöld.
+- cfg_hide_outside_window=0 esetén a 3..372 tartomány teljesen látható: Count=370, Hidden=0.
