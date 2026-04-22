@@ -3164,3 +3164,23 @@ Visszamérés:
 Következmény:
 - Az audit olvashatóbb lett, miközben a bizonyító erejű sorok megmaradnak.
 - A következő funkciócsomagok előtt a regressziós makró marad a zöldítés alapja.
+
+[2026-04-22 23:10:00 | STABIL PONT — FELHASZNÁLÓI TESZT ÉS REGRESSZIÓ ZÁRÁSA]
+
+Felhasználói teszt eredménye:
+- Teljes regresszió lefutott: REGRESSION_END pass=8; fail=0.
+- Hiba nem látszik a minta auditban.
+- Sofőrmozgatás 1->2 és 2->1 útvonal működött, INTEGRITY_SNAPSHOT_OK eredménnyel.
+- Színek paletta jobbklikkes használata működött több státusszal: Nincs kiosztva, Hétvége, Munka megbeszélve, Úton lévő autó, Szerviz / Műszaki.
+- Snapshot készítés, információ és visszaállítás működött.
+- Mentés/újranyitás után OPEN_BEGIN/OPEN_END és render útvonal rendben lefutott.
+
+Mérési pontok a képernyőn látható audit alapján:
+- Első regresszió: elapsedMs=20859,4.
+- Második regresszió: elapsedMs=13228,1.
+- Snapshot restore mért idő: 7570,3 ms körül a második regresszióban.
+- Paletta apply sorok keletkeztek PALETTE_APPLY actionnel.
+
+Stabilizálási döntés:
+- Ezt az állapotot stabil mentési pontként Gitben rögzítjük.
+- Következő munkacsomag már erre épülhet: a napi cella státusz/szín üzemi adatként való kezelése és későbbi riportolhatósága.
