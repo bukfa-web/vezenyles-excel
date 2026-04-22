@@ -2768,3 +2768,37 @@ OpenXML kontroll:
 Következmény:
 - A fő Beállítások kulcsok funkcionális érvényesülése bizonyított.
 - A cfg_data_last_row értelmezése visible-window oldalon összhangba került a layout/dátum logikával.
+
+[2026-04-22 20:05:00 | TISZTÍTÁS + VIZUÁLIS PALETTA — SOFŐRÖK GOMBOK ÉS SZÍNEK LAP]
+
+Munkacsomag célja:
+- A projektből eltávolítani a felesleges, hibát okozó UI-maradékokat.
+- A Színek lapot úgy formázni, hogy a paletta kódjai vizuálisan is azonnal értelmezhetők legyenek.
+
+Feltárt állapot:
+- A Sofőrök lapon 2 régi gomb maradt:
+  - Button 2 -> UjraszamozSorszamok
+  - Button 3 -> RendezSorszamSzerint
+- A hivatkozott makrók nincsenek az aktuális VBA projektben, ezért kattintáskor Excel makrófuttatási hiba jelent meg.
+- VBA diagnosztikai modulmaradék nem volt az aktuális projektben.
+
+Javítás:
+- A két hibás Sofőrök-lapi gomb törölve.
+- A Színek lapon a C2:C11 színkód cellák a saját hex kódjuk szerinti kitöltést kaptak.
+- Sötét színeknél fehér betűszín került beállításra az olvashatóság miatt.
+- A Kiosztva sor fehér alapon fekete betűvel, a Nincs kiosztva sor fehér alapon piros betűvel jelenik meg.
+- A paletta tartomány fejléce és keretezése egységesítve.
+
+Visszamérés:
+- Workbook normál Excel COM Workbooks.Open hívással nyitható.
+- BadOnActionCount=0.
+- Vezénylés Shape.Count=4.
+- Színek UsedRange=A1:C11.
+
+Következmény:
+- A Sofőrök lapon megszűntek a nem létező makrókra mutató hibaüzenetek.
+- A Színek lap alkalmasabb lett a későbbi palettaalapú cellaszínezési munkacsomaghoz.
+
+Kiegészítő mappatisztítás:
+- A git által ignorált régi Vezénylés_Stabil_2026.02.26.xlsm backup törölve a projektmappából.
+- A projektmappa aktuális tartalma: .git, .gitignore, README.md, napló, Biblia, Vezénylés_Stabil_2026.04.21_CLEAN.xlsm.

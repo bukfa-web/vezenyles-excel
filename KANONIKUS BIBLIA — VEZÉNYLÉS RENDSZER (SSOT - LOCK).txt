@@ -7742,3 +7742,27 @@ Mért javítás:
 - modVisibleWindow javítva, hogy a 2 fejlécsorral korrigált utolsó sort használja.
 - Beállítások funkcionális visszamérés: 8/8 teszt zöld.
 - cfg_hide_outside_window=0 esetén a 3..372 tartomány teljesen látható: Count=370, Hidden=0.
+
+[2026-04-22 20:05:00 | LOCK PONTOSÍTÁS — UI-MARADÉKOK ÉS SZÍNEK PALETTA]
+
+Kanonikus UI-szabály:
+- A munkalapokon nem maradhat olyan gomb vagy shape, amely nem létező makróra mutat.
+- Ha egy régi UI elem aktuális üzleti funkció nélkül marad, azt törölni kell, nem elrejteni.
+
+Aktuális tisztítás:
+- A Sofőrök lapról törölve lett a két régi gomb:
+  - UjraszamozSorszamok
+  - RendezSorszamSzerint
+- Ezek a makrók nem részei az aktuális kanonikus működésnek.
+
+Színek paletta LOCK:
+- A Színek lap C oszlopa a hex színkódok vizuális mintája is.
+- A paletta sorai továbbra is A:C szerkezetben maradnak:
+  - A: Státusz megnevezése
+  - B: Szín leírása
+  - C: Szín_Kód és látható színminta
+- A Kiosztva és Nincs kiosztva állapotok fehér kitöltés mellett betűszínnel különböztethetők meg.
+
+Mérési szabály:
+- Tisztítás után ellenőrizni kell, hogy nincs hibás OnAction hivatkozás.
+- A Vezénylés lapon Shape.Count nem változhat tisztítási mellékhatásként.
