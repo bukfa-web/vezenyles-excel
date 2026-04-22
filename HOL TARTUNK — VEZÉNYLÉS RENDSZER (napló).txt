@@ -3000,3 +3000,44 @@ Visszamérés:
 Következmény:
 - Az 1. munkacsomag már nemcsak elkészíti, hanem felhasználó számára láthatóan visszajelzi a pillanatkép állapotát.
 - A visszaállítás továbbra is külön következő munkacsomag.
+
+[2026-04-22 22:15:00 | FUNKCIÓ — VISSZAÁLLÍTÁS BIZTONSÁGI PILLANATKÉPBŐL]
+
+Munkacsomag célja:
+- Az utolsó _Pillanatkep technikai lapból vissza lehessen állítani a Sofőrök és Vezénylés mentett üzemi állapotát.
+- A visszaállítás külön gombbal, megerősítéssel történjen.
+
+Implementáció:
+- modSnapshot kiegészítve visszaállítási logikával.
+- Új gomb a Beállítások lapon: btnSnapshotRestore -> Snapshot_RestoreSafetyPoint.
+- Gombfelirat: Visszaallitas pillanatkepbol.
+- A Snapshot_InsertOrUpdateButton most 3 snapshot gombot biztosít: készítés, adatok, visszaállítás.
+
+Visszaállított adatkör:
+- Sofőrök mentett tartománya.
+- Vezénylés mentett tartománya.
+- FormulaR1C1/érték, számformátum, kitöltési minta, kitöltésszín, betűszín.
+
+Biztonsági szabályok:
+- A visszaállítás előtt a snapshot verzióját, időpontját és tartományait ellenőrzi.
+- A cél tartomány sor/oszlop mérete egyezésre van ellenőrizve.
+- Interaktív visszaállítás előtt megerősítő kérdést ad.
+- Restore után Vezénylés védelem és Beállítások védelem visszaáll.
+
+Mérés:
+- Snapshot_Restore_Smoke_Test: OK.
+- Smoke módszer: snapshot készítés, B94 próbacella ideiglenes színmódosítása, visszaállítás, szín egyezés ellenőrzése.
+- SNAPSHOT_RESTORE_BEGIN és SNAPSHOT_RESTORE_END audit sor keletkezett.
+- SNAPSHOT_RESTORE_SMOKE: ok; probe=B94.
+- Restore elapsedMs=10531,3.
+- SnapshotVisible=2, VeryHidden.
+- SnapshotUsedRange=A1:S2428.
+- Beállítások Shape.Count=4.
+- Vezénylés Shape.Count=4.
+- Vezénylés Protected=True.
+- Normál megnyitás: OK, 7 lap, _Pillanatkep VeryHidden, státusz=Elkészült.
+- OpenXML: repairLoad=False, twoCellAnchor=4, pic=4, graphicFrame=0, Vezénylés dimension=A1:CM372.
+
+Következmény:
+- A munkafüzetben már van kézzel indítható biztonsági mentési pont és abból kézzel indítható visszaállítás.
+- A visszaállítás működik, de a 10 mp körüli futási idő később optimalizálható, ha üzemi használatban zavaró.

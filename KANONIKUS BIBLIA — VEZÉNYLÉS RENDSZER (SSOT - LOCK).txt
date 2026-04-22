@@ -7853,3 +7853,33 @@ Gombok:
 Határ:
 - A pillanatkép készítés munkacsomag nem jelent visszaállítást.
 - Visszaállítás csak külön mért és auditált munkacsomagban vezethető be.
+
+[2026-04-22 22:15:00 | LOCK PONTOSÍTÁS — PILLANATKÉPBŐL VISSZAÁLLÍTÁS]
+
+Kanonikus visszaállítás:
+- A visszaállítás forrása kizárólag az utolsó _Pillanatkep lap.
+- A visszaállítás interaktív használatban megerősítést kér.
+- A visszaállítás a Sofőrök és Vezénylés mentett tartományait írhatja felül.
+
+Kötelező ellenőrzések:
+- Snapshot verzió létezik és támogatott.
+- Snapshot időpont nem üres.
+- Mentett Sofőrök és Vezénylés tartomány létezik.
+- Cél tartomány mérete egyezik a snapshot metaadataival.
+
+Kötelezően visszaállított cellaállapot:
+- FormulaR1C1/érték.
+- Számformátum.
+- Kitöltési minta.
+- Kitöltésszín.
+- Betűszín.
+
+Audit szabály:
+- Visszaállítás kezdete: SNAPSHOT_RESTORE_BEGIN.
+- Sikeres visszaállítás: SNAPSHOT_RESTORE_END.
+- Hiba: SNAPSHOT_RESTORE_ERROR.
+- Smoke: SNAPSHOT_RESTORE_SMOKE.
+
+UI szabály:
+- Beállítások lapon léteznie kell a Visszaallitas pillanatkepbol gombnak.
+- OnAction cél: Snapshot_RestoreSafetyPoint.
