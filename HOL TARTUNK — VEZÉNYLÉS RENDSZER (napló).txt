@@ -1968,7 +1968,39 @@ Fejlesztési terv — rendszerlogikai sorrend
   - a cellaszínezés nem bontja meg az oszlopidentitást,
   - sorrendváltozás után a színek a sofőrrel együtt maradnak.
 
-5. Foreign vehicle felismerés
+5. Fuvarok beemelése és napi vezénylés modell
+- Cél: a Fuvarok / sablonlogika ne különálló lista legyen, hanem a Vezénylés tényleges üzemi tartalma.
+- Kanonikus értelmezés:
+  - a napi vezénylés cella a tényleges fuvar,
+  - a fuvar a dátumhoz és a sofőroszlophoz kapcsolódik,
+  - a sofőr kapcsolata az oszlopidentitáson keresztül jön,
+  - sorrendváltozáskor a fuvaradat a teljes sofőroszloppal együtt mozog.
+- Fuvar sablon SSOT:
+  - forrás: Fuvarok lap / később Sablonok ListObject,
+  - minimum mezők: név, útvonal, default megjegyzés, típus,
+  - típus: kötelező vagy extra.
+- Kötelező fuvar:
+  - rendszer által előkészíthető / beemelhető,
+  - nem írhat felül automatikusan meglévő kézi munkát,
+  - hónap- vagy időablak-generáláshoz kapcsolódhat.
+- Extra fuvar:
+  - felhasználó által választható,
+  - később Data Validation listából vagy kontrollált választóból jöhet,
+  - kézi módosítás megengedett, de auditálható.
+- Tiltott működés:
+  - meglévő napi fuvarcellák automatikus kitakarítása,
+  - múltbeli fuvarok felülírása,
+  - fuvar beemelése fix cellacímek alapján,
+  - olyan beemelés, amely sofőrsorrend-változáskor adatkeveredést okozhat.
+- Kész állapot:
+  - a Fuvarok/Sablonok forrásmodell dokumentált,
+  - kötelező és extra fuvar külön kezelve,
+  - meglévő cellatartalom megőrzési szabálya tesztelt,
+  - beemelés auditált,
+  - a beemelt fuvarok együtt mozognak a sofőroszlop-identitással,
+  - foreign/duplicate logika ugyanarra a napi fuvarmodellre tud épülni.
+
+6. Foreign vehicle felismerés
 - Cél: jelezni, ha a napi beosztás eltér a Sofőrök lapon rögzített alapjárműtől.
 - Kész állapot:
   - eltérés felismerve,
@@ -1976,7 +2008,7 @@ Fejlesztési terv — rendszerlogikai sorrend
   - auditálva,
   - nem tilt automatikusan.
 
-6. Duplikációellenőrzések
+7. Duplikációellenőrzések
 - Cél: sofőr/vontató/pótkocsi ütközések felismerése.
 - Kész állapot:
   - driver duplicate,
@@ -1985,7 +2017,7 @@ Fejlesztési terv — rendszerlogikai sorrend
   - kombinált foreign+duplicate állapot,
   - audit és vizuális jelzés.
 
-7. Állapotgép
+8. Állapotgép
 - Cél: a cellaállapotok ne széttartó szabályokból, hanem egységes állapotmodellből jöjjenek.
 - Kész állapot:
   - normál,
@@ -1994,14 +2026,14 @@ Fejlesztési terv — rendszerlogikai sorrend
   - foreign+duplicate,
   - későbbi speciális állapotok egységesen kezelve.
 
-8. Audit és diagnosztikai nézet
+9. Audit és diagnosztikai nézet
 - Cél: az üzemi kockázatok és rendszerhibák átláthatók legyenek.
 - Kész állapot:
   - minden kritikus esemény auditált,
   - diagnosztikai nézet listázza az aktuális problémákat,
   - nem kell a felhasználónak rejtett hibákat keresnie.
 
-9. Snapshot / történeti réteg
+10. Snapshot / történeti réteg
 - Cél: múltbeli állapotok megőrzése.
 - Kész állapot:
   - napi/heti állapot visszakereshető,
