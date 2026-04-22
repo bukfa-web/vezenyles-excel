@@ -7703,3 +7703,18 @@ Stabilitási szabály:
 
 Mérési elv:
 - Stabilizálás után kötelező ellenőrizni: lapok száma, Eseménynapló tartomány/sorcount, cfg kulcsok, Vezénylés Shape.Count, drawing anchor/pic darabszám.
+
+[2026-04-22 19:01:27 | LOCK PONTOSÍTÁS — SETTINGS ÉRVÉNYESÜLÉS ÉS COPY-MENTES MOVE TELJESÍTMÉNY]
+
+Kanonikus működési szabály:
+- Workbook_Open nem lehet üres vagy korai Exit Sub-bal kikapcsolt állapotban; a szükséges init/render/protection körnek futnia kell.
+- Render közben a viewport frissítés nem ütközhet a render-busy őrrel. Ha a render saját maga hív viewport frissítést, azt kontrolláltan, nem skip állapotban kell végrehajtani.
+
+Sofőroszlop-mozgatás aktuális elfogadott implementációja:
+- Copy/Paste továbbra is tilos.
+- A mozgatás a cellaérték/képlet tömbös mozgatását és a kitöltési szín/pattern kontrollált mozgatását használja.
+- A közös vizuális layoutot továbbra is Apply_Vezenyles_Layout_From_SSOT normalizálja.
+- Elfogadási mérés: fromRank=18 -> toRank=1 kb. 8,27 s, Shape.Count 4 -> 4, érték és szín együtt mozog.
+
+Audit retenció:
+- Ebben a körben nem módosult. AUDIT_MAX_ROWS=2000 és Audit_Trim marad.
