@@ -3138,3 +3138,29 @@ Visszamérés:
 Következmény:
 - Van gombnyomás/Immediate futtatás alapú teljes rendszer-regresszió.
 - Új funkciók előtt és nagy javítások után ezt kell futtatni.
+
+[2026-04-22 23:05:00 | MÉRÉS + FINOMÍTÁS — AUDIT-ZAJ CSÖKKENTÉSE, REGRESSZIÓ ZÖLD]
+
+Cél:
+- A 2000 soros audit-retenció mellett a fontos üzleti és diagnosztikai események lassabban szoruljanak ki.
+- Csak alacsony értékű INFO zajt szűrünk; WARN és ERROR továbbra is kötelezően megmarad.
+
+Implementáció:
+- modAudit központi Audit_ShouldSuppress függvénye bővítve.
+- Szűrt INFO csoportok: Selection/UI zaj, belső viewport/rebuild lépések, belső render/protect/setup lépések, smoke/table technikai zajok.
+- Megmaradó fontos események: REGRESSION_*, SNAPSHOT_BEGIN/END/RESTORE_*, SOFOR_MOVE_*, VEZ_DRIVER_COL_MOVE_*, INTEGRITY_SNAPSHOT_OK, PALETTE_RIGHTCLICK/APPLY, SAVE_*, OPEN_*, RENDER_BEGIN/END, SETTINGS_APPLY_*.
+- Audit retenció nem módosult: AUDIT_MAX_ROWS=2000 és Audit_Trim továbbra is aktív.
+
+Visszamérés:
+- Regression_Smoke_Test lefutott.
+- REGRESSION_END: pass=8; fail=0; elapsedMs=16328,1.
+- Utolsó regressziós audit blokk: 32 sor.
+- Lépések: REGRESSION_STEP_OK=8.
+- Hiba: Errors=0.
+- Szűrt setup-zaj az utolsó regressziós blokkban: 0 sor.
+- Strukturális őrök: Vezénylés Shape.Count=4, SoforLista=A1:D25, _Pillanatkep VeryHidden.
+- OpenXML kontroll: repairLoad=False, twoCellAnchor=4, pic=4, graphicFrame=0, Vezénylés dimension=A1:CM372.
+
+Következmény:
+- Az audit olvashatóbb lett, miközben a bizonyító erejű sorok megmaradnak.
+- A következő funkciócsomagok előtt a regressziós makró marad a zöldítés alapja.

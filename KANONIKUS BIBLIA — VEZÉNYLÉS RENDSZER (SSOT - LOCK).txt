@@ -7919,3 +7919,29 @@ Kötelező regressziós lefedés:
 Elfogadási szabály:
 - REGRESSION_END fail=0 szükséges a munkacsomag zöldítéséhez.
 - Regresszió után OpenXML kontroll nem mutathat repairLoad jelet.
+
+[2026-04-22 23:05:00 | LOCK PONTOSÍTÁS — AUDIT-ZAJ SZŰRÉS]
+
+Kanonikus audit-zaj elv:
+- Az audit bizonyító réteg, nem képernyőfrissítési trace-dump.
+- Csak INFO szintű, ismétlődő technikai zaj szűrhető.
+- WARN és ERROR sorokat tilos zajszűréssel eldobni.
+
+Központi mechanizmus:
+- A szűrés helye: modAudit.Audit_ShouldSuppress.
+- A szűrés nem változtathat üzleti állapotot és nem akadályozhat mentést, renderelést vagy visszaállítást.
+- Az AUDIT_MAX_ROWS=2000 és Audit_Trim retenciós működés továbbra is változatlan.
+
+Kötelezően megmaradó eseménycsaládok:
+- REGRESSION_*.
+- SNAPSHOT_BEGIN, SNAPSHOT_END, SNAPSHOT_RESTORE_BEGIN, SNAPSHOT_RESTORE_END és hibaváltozataik.
+- SOFOR_MOVE_* és VEZ_DRIVER_COL_MOVE_*.
+- INTEGRITY_SNAPSHOT_OK.
+- PALETTE_RIGHTCLICK és PALETTE_APPLY.
+- SAVE_* és OPEN_*.
+- WARN és ERROR minden action esetén.
+
+Elfogadási szabály:
+- Audit-zaj módosítás után teljes regressziót kell futtatni.
+- REGRESSION_END fail=0 kötelező.
+- OpenXML kontroll nem mutathat repairLoad jelet.
