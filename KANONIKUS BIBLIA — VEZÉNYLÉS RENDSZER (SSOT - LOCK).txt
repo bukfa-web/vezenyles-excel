@@ -7766,3 +7766,23 @@ Színek paletta LOCK:
 Mérési szabály:
 - Tisztítás után ellenőrizni kell, hogy nincs hibás OnAction hivatkozás.
 - A Vezénylés lapon Shape.Count nem változhat tisztítási mellékhatásként.
+
+[2026-04-22 20:35:00 | LOCK PONTOSÍTÁS — SZÍNEK PALETTA ÜZEMI ALKALMAZÁSA]
+
+Kanonikus használat:
+- A napi cellák színezése a Vezénylés lapon történik.
+- A felhasználó kijelöli a színezendő napi cellákat, jobb klikket nyom, majd a Vezenyles szin menüből választ státuszt.
+- Nem kanonikus irány a lapok közti kijelölés-megjegyzős Alkalmaz gombos működés.
+
+Kanonikus adatforrás:
+- A Színek lap A:C palettája az üzemi színezés forrása.
+- A menüelemeket a munkafüzet megnyitáskor ebből kell felépíteni.
+- A Színek lap D oszlopa csak használati jelzés, nem SSOT adatforrás.
+
+Technikai szabály:
+- A jobbklikk paletta ideiglenes Excel Cell context menu elem, nem munkalapi shape.
+- Workbook_Open köteles létrehozni a menüt.
+- Workbook_BeforeClose köteles eltávolítani a menüt.
+- A színező makró csak a Vezénylés napi adattartományát módosíthatja.
+- Vezénylés Shape.Count színezéskor nem változhat.
+- A cellakitöltés és betűszín üzemi adatnak számít, ezért a copy-mentes sofőroszlop-mozgatással a sofőrrel együtt kell mozognia.

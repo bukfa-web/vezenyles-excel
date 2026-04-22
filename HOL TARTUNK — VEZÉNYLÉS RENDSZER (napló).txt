@@ -2802,3 +2802,68 @@ Következmény:
 Kiegészítő mappatisztítás:
 - A git által ignorált régi Vezénylés_Stabil_2026.02.26.xlsm backup törölve a projektmappából.
 - A projektmappa aktuális tartalma: .git, .gitignore, README.md, napló, Biblia, Vezénylés_Stabil_2026.04.21_CLEAN.xlsm.
+
+[2026-04-22 20:15:00 | TELJES PROJEKT-LELTÁR — MUNKALAPOK, SHAPE-EK, VBA]
+
+Munkafüzet-leltár:
+- Lapok száma: 6.
+- Vezénylés: UsedRange=A1:CM372, Shape.Count=4, Tables=0, Protected=True.
+- Sofőrök: UsedRange=A1:I25, Shape.Count=0, Tables=1, table=SoforLista A1:D25.
+- Színek: UsedRange=A1:C11, Shape.Count=0, Tables=0.
+- Fuvarok: UsedRange=A1, Shape.Count=0, Tables=0.
+- Eseménynapló: UsedRange=A1:F2001, Tables=1, table=tblEsemenynaplo A1:F2001.
+- Beállítások: UsedRange=A1:J50, Shape.Count=1, Protected=True, btnSettingsApply -> Settings_Apply_Changes.
+
+Shape-leltár:
+- Vezénylés: 4 meglévő grafikai objektum, nincs OnAction makróhivatkozás.
+- Beállítások: 1 érvényes gomb, Settings_Apply_Changes.
+- Hibás OnAction hivatkozás: 0.
+
+VBA-leltár:
+- Standard modulok: 13.
+- Worksheet/ThisWorkbook komponensek: 7.
+- Üres lapkódok: Színek, Fuvarok, Eseménynapló, Beállítások kódlap jelenleg üres.
+- Fő aktív modulok: modAudit, modColumnMove, modSettingsSSOT, modSSOT, modSSOTIntegrityRuntime, modVezenylesDates, modVezenylesFreeze, modVezenylesLayout, modVezenylesRender, modVisibleWindow.
+
+Beállítás-leltár:
+- cfg_data_last_row=370.
+- cfg_freeze_cell=B3, cfg_freeze_enabled=1.
+- cfg_visible_past_days=20, cfg_visible_future_days=15, cfg_hide_outside_window=1.
+- cfg_driver_source_mode=SOFOROK_AUTO, cfg_driver_fixed_count=0, cfg_driver_extra_cols=3.
+- cfg_audit_max_rows=5000 érték létezik a Beállítások lapon, de a kanonikus döntés szerint a modAudit jelenleg továbbra is AUDIT_MAX_ROWS=2000 konstans alapján trimel.
+
+Színek paletta-leltár:
+- 10 üzemi státusz sor van: Szabadság, Pihenő idő, Munka megbeszélve, 72-órás pihenő, Fuvar változás, Úton lévő autó, Szervíz / Műszaki, Kiosztva, Nincs kiosztva, Hétvége.
+- A C oszlop színmintái kitöltve és visszamérve.
+
+Következő munkacsomag:
+- Színek paletta alapján üzemi cellaszínezés bevezetése makrón keresztül, mert a Vezénylés lap védett és a színezés sofőrhöz tartozó üzemi adatként mozog tovább a copy-mentes oszlopmozgatással.
+
+[2026-04-22 20:35:00 | FUNKCIÓ — JOBBKLIKKES SZÍNEK PALETTA A VEZÉNYLÉS LAPON]
+
+Munkacsomag célja:
+- A Színek lap palettáját üzemi cellaszínezésre használni a Vezénylés napi celláin.
+- A lapok közti kijelölés-megjegyzős megoldás helyett egyszerűbb használat: Vezénylés lapon kijelölés, jobb klikk, Vezenyles szin menü.
+
+Implementáció:
+- Új VBA modul: modColorPalette.
+- A jobbklikkes Excel Cell context menübe ideiglenes menü kerül: Vezenyles szin.
+- A menü 10 elemet épít a Színek lap A:C palettájából.
+- Workbook_Open után a menü automatikusan felépül.
+- Workbook_BeforeClose törli a menüt.
+- A színezés csak a Vezénylés napi adattartományára engedélyezett: B3-tól a cfg_data_last_row szerinti utolsó sorig és az aktuális fejlécből számolt utolsó oszlopig.
+- A makró a védett Vezénylés lapot kontrolláltan kezeli, majd visszaállítja a UIOnly védelmet.
+
+Mérés:
+- Palette_Smoke_Test lefutott: OK.
+- ContextRootFound=True.
+- ContextItems=10.
+- Vezénylés Shape.Count=4.
+- Színek UsedRange=A1:D11.
+- Vezénylés Protected=True.
+- Normál Workbook_Open ellenőrzés: OK, jobbklikk menü automatikusan létrejön, 10 elemmel.
+- OpenXML kontroll: repairLoad=False, drawing twoCellAnchor=4, pic=4, graphicFrame=0, Vezénylés dimension=A1:CM372.
+
+Megjegyzés:
+- Az első smoke próbák rejtett Excel párbeszédablakon megakadtak; a hex színkód-ellenőrzés és a smoke útvonal javítva lett.
+- Az interaktív jobbklikkes makró felhasználói hiba esetén továbbra is üzenetet ad.
