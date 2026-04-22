@@ -2867,3 +2867,38 @@ Mérés:
 Megjegyzés:
 - Az első smoke próbák rejtett Excel párbeszédablakon megakadtak; a hex színkód-ellenőrzés és a smoke útvonal javítva lett.
 - Az interaktív jobbklikkes makró felhasználói hiba esetén továbbra is üzenetet ad.
+
+[2026-04-22 20:55:00 | JAVÍTÁS — JOBBKLIKK PALETTA NEM JELENT MEG]
+
+Felhasználói teszt:
+- Vezénylés lapon C94 cellán jobb kattintásra az Excel alap helyi menüje jelent meg.
+- A Vezenyles szin paletta nem volt látható.
+- Az Eseménynaplóban nem volt hiba erről.
+
+Ok:
+- Az előző implementáció a globális Excel Cell context menübe próbált statikus elemet beépíteni.
+- Workbook_Open alatt a PALETTE_MENU sor bizonyította, hogy a menüépítés lefutott, de a modern Excel jobbklikk felületén ez nem jelent meg megbízhatóan.
+- Audit azért nem volt a jobb kattintásról, mert a régi implementáció csak a menü létrehozását és a paletta alkalmazását naplózta; magát a jobbklikk eseményt még nem kezelte.
+
+Javítás:
+- A paletta eseményvezérelt saját popupra lett átállítva.
+- Munka1.Worksheet_BeforeRightClick bekötve.
+- A Vezénylés napi adattartományán jobb kattintáskor a rendszer Cancel=True mellett saját popupot nyit.
+- A popup elemei továbbra is a Színek lap A:C palettájából épülnek.
+- A jobbklikk esemény most külön auditálódik: PALETTE_RIGHTCLICK vagy hiba esetén PALETTE_RIGHTCLICK_ERROR.
+- A régi statikus Cell-menü beékelés ki lett iktatva; Palette_Ensure_Context_Menu csak takarít és a popup módot jelzi.
+
+Visszamérés:
+- Palette_Smoke_Test: OK.
+- HasBeforeRightClick=True.
+- HasPopupProcedure=True.
+- Vezénylés Shape.Count=4.
+- Színek UsedRange=A1:D11.
+- Vezénylés Protected=True.
+- Normál open: OK.
+- StaticCellMenuItems=0.
+- OpenXML: repairLoad=False, twoCellAnchor=4, pic=4, graphicFrame=0, Vezénylés dimension=A1:CM372.
+
+Hátralévő kézi ellenőrzés:
+- Felhasználói oldalon újranyitás után Vezénylés napi cellán jobb kattintás: saját Vezenyles szin popupnak kell megjelennie.
+- Sikeres választás után PALETTE_APPLY audit sornak kell keletkeznie.

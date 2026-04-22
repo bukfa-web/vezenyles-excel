@@ -7786,3 +7786,19 @@ Technikai szabály:
 - A színező makró csak a Vezénylés napi adattartományát módosíthatja.
 - Vezénylés Shape.Count színezéskor nem változhat.
 - A cellakitöltés és betűszín üzemi adatnak számít, ezért a copy-mentes sofőroszlop-mozgatással a sofőrrel együtt kell mozognia.
+
+[2026-04-22 20:55:00 | LOCK PONTOSÍTÁS — JOBBKLIKK PALETTA ESEMÉNYVEZÉRELT]
+
+Kanonikus jobbklikk működés:
+- A Színek paletta nem a globális Excel Cell context menü statikus módosításával jelenik meg.
+- A Vezénylés lap Worksheet_BeforeRightClick eseménye köteles kezelni a napi adattartományon történő jobb kattintást.
+- Napi cellán jobb kattintáskor Cancel=True mellett saját ideiglenes popup menü jelenik meg.
+- Napi tartományon kívül az Excel normál helyi menüje maradhat.
+
+Audit szabály:
+- Paletta-popup megnyitási kísérlet: PALETTE_RIGHTCLICK.
+- Popup hiba: PALETTE_RIGHTCLICK_ERROR.
+- Szín alkalmazás: PALETTE_APPLY.
+
+Technikai tilalom:
+- A modern Excel helyi menüjébe statikusan beékelt CommandBars("Cell") elem nem tekinthető elfogadott üzemi megoldásnak, mert a felületen nem jelent meg megbízhatóan.
