@@ -7945,3 +7945,31 @@ Elfogadási szabály:
 - Audit-zaj módosítás után teljes regressziót kell futtatni.
 - REGRESSION_END fail=0 kötelező.
 - OpenXML kontroll nem mutathat repairLoad jelet.
+
+[2026-04-22 23:50:00 | LOCK PONTOSÍTÁS — FUVAROK HAVI ALAPFUVAR BESZÚRÁS]
+
+Kanonikus cél:
+- A Fuvarok lap havi alapfuvar-sablonként használható.
+- A funkció nem importmotor és nem sofőrhöz rendelő algoritmus.
+- A cél az ismétlődő napi alapfuvarok gyors előtöltése.
+
+Forrásmodell:
+- Fuvarok lap A oszlopa: hónap száma vagy hónapneve.
+- Ugyanazon sor B..utolsó nem üres cellája: beszúrandó alapfuvarok balról jobbra.
+- Üres cellák a Fuvarok sorban kihagyandók, nem hoznak létre célbeli üres oszlopot.
+
+Célmodell:
+- Vezénylés lap adott hónaphoz tartozó napi sorai.
+- Beszúrás kezdete: B oszlop.
+- A fuvarok sorrendje a Fuvarok sor balról jobbra sorrendje.
+
+Védelmi szabályok:
+- Meglévő napi célcellát tilos automatikusan felülírni.
+- Beszúrás előtt biztonsági pillanatkép készül.
+- A forrás betűszínét át kell vinni, mert a piros betű üzemi jelentést hordoz.
+- A beszúrás nem rendez sofőrt, nem mozgat oszlopot és nem végez járműpárosítást.
+
+Audit szabály:
+- Kezdés: FUVAR_FILL_BEGIN.
+- Sikeres lezárás: FUVAR_FILL_END, benne hónap, napok, fuvarok, beírt és kihagyott cellák száma.
+- Hiba: FUVAR_FILL_ERROR.

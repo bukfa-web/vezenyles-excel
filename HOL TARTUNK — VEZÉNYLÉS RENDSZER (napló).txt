@@ -3184,3 +3184,46 @@ Mérési pontok a képernyőn látható audit alapján:
 Stabilizálási döntés:
 - Ezt az állapotot stabil mentési pontként Gitben rögzítjük.
 - Következő munkacsomag már erre épülhet: a napi cella státusz/szín üzemi adatként való kezelése és későbbi riportolhatósága.
+
+[2026-04-22 23:50:00 | FUNKCIÓ — FUVAROK HAVI ALAPFUVAR BESZÚRÁS]
+
+Felhasználói pontosítás:
+- A fuvarbeemelés célja nem külső import és nem sofőrhöz párosítás.
+- Cél: ne kelljen ugyanazokat az alapfuvarokat a hónap minden napjára kézzel végigírni.
+- A fuvarszervező az alapfuvarokat utána kézzel/húzással rendezi az aktuális sofőr oszlopába, majd a színezéssel jelöli az állapotot.
+
+Implementáció:
+- Új modul: modFuvarok.
+- Új makró: Fuvarok_Beszur_Honap.
+- Új smoke makró: Fuvarok_Smoke_Test.
+- Új gomb a Fuvarok lapon: Alapfuvarok beszurasa.
+- A Fuvarok lap A oszlopa a hónap száma vagy hónapneve.
+- Az adott sor B..utolsó nem üres cellája tartalmazza az alapfuvarokat.
+- A makró a Vezénylés lapon az adott hónap minden napjára B oszloptól kezdve beszúrja a nem üres alapfuvarokat.
+- Meglévő célcellát nem ír felül.
+- A Fuvarok sor betűszínét átviszi a célcellákra, így a piros előre jelzés megmarad.
+- Beszúrás előtt biztonsági pillanatkép készül.
+
+Visszamérés:
+- Fuvarok!A2 = 5, vagyis május.
+- Fuvarok!B2:N2 tartományból 12 nem üres alapfuvar került beolvasásra.
+- Vezénylés májusi napjai: 31 sor.
+- Beírt cellák: 372.
+- Kihagyott foglalt cellák: 0.
+- Minden beírt cella piros betűszínnel jelent meg.
+- Audit: FUVAR_FILL_BEGIN, SNAPSHOT_BEGIN, SNAPSHOT_END, FUVAR_FILL_END megjelent.
+- FUVAR_FILL_END részlet: month=5; days=31; items=12; written=372; skipped=0.
+
+Megjegyzés:
+- A C:\Vezénylés excel export\vezénylés 2024.01.01-től.xlsx referenciafájl jelenleg nincs automatikusan Gitbe véve.
+
+[2026-04-22 23:53:30 | VISSZAMÉRÉS — FUVAROK BESZÚRÁS UTÁNI TELJES REGRESSZIÓ]
+
+Eredmény:
+- Teljes regresszió lefutott a Fuvarok alapfuvar-beszúrás után.
+- REGRESSION_END: pass=8; fail=0; elapsedMs=20945,3.
+- Fuvar beszúrás audit megmaradt: month=5; days=31; items=12; written=372; skipped=0.
+- OpenXML kontroll: repairLoad=False, Vezénylés dimension=A1:CM372, twoCellAnchor=4, pic=4, graphicFrame=0.
+
+Következmény:
+- Az egyszerű havi alapfuvar-beszúró funkció zöld regressziós állapotban van.
