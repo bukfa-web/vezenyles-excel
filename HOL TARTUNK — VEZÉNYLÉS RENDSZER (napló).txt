@@ -2513,3 +2513,81 @@ Kanonikus következmény:
 - A cfg_data_last_row = 370 továbbra is kanonikus adattér-határ.
 - A 372. sor a 2 fejlécsor + 370 kezelt nap logikája miatt marad a tiszta technikai végpont.
 - A további audit limit fejlesztést már ezen a tisztább workbook állapoton lehet folytatni.
+
+[2026-04-22 | ÁTADÁS — GÉP 1 LEZÁRÁS / GÉP 2 FOLYTATÁS]
+
+Munkahelyzet:
+- A munkát az 1-es gépen lezártuk.
+- A folytatás a 2-es gépen történik.
+- A GitHub main ág tartalmazza a lezárt állapotot.
+
+Repo:
+- https://github.com/bukfa-web/vezenyles-excel
+
+Kanonikus munkafájl:
+- Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+
+Kanonikus dokumentáció:
+- KANONIKUS BIBLIA — VEZÉNYLÉS RENDSZER (SSOT - LOCK).txt
+- HOL TARTUNK — VEZÉNYLÉS RENDSZER (napló).txt
+
+Utolsó elvégzett érdemi munkák:
+- Rendszerszintű fejlesztési terv rögzítve.
+- Fuvarbeemelési terv rögzítve.
+- Vizuális üzemi minta rögzítve a csatolt képek alapján.
+- Beállítások SSOT és Eseménynapló retenció pontosítva.
+- Settings / Vezénylés / Eseménynapló mérés rögzítve.
+- cfg_audit_max_rows bevezetve a workbookba:
+  - Beállítások!H17 = cfg_audit_max_rows
+  - Beállítások!I17 = 5000
+  - Beállítások!J17 = Eseménynapló maximális élő sorai
+  - named range: cfg_audit_max_rows -> Beállítások!$I$17
+- Vezénylés UsedRange sor-maradványok tisztítva:
+  - 373 utáni style-only rejtett sorok eltávolítva,
+  - Vezénylés max sor 372,
+  - drawing/shape állapot változatlan.
+
+Fontos mért állapot a lezáráskor:
+- Vezénylés lap:
+  - dimension: A1:CM372 / openpyxl mérésben A1:BU372
+  - cfg_data_last_row = 370
+  - fagyasztás ténylegesen B3 logikájú: xSplit=1, ySplit=2
+  - topLeftCell=B103 csak mentett nézeti/görgetési állapot, nem SSOT-hiba
+- Eseménynapló:
+  - tblEsemenynaplo
+  - tartomány: A1:F2001
+  - nem üres sor: 2001
+  - kanonikus aktuális mezők: ts, severity, action, target, details, proc
+- Drawing kontroll:
+  - Vezénylés drawing1.xml: twoCellAnchor=4, pic=4, graphicFrame=0
+
+Következő pontos fejlesztési lépés a 2-es gépen:
+- Audit limit figyelmeztetés bekötése.
+
+Következő munkacsomag részlete:
+1. Friss repo lehúzása a 2-es gépen.
+2. Ellenőrizni, hogy a workbook zárt Excel mellett van.
+3. Megmérni újra:
+   - cfg_audit_max_rows létezik-e,
+   - tblEsemenynaplo sorcount,
+   - modAudit jelenlegi működése.
+4. A modAudit környékén kis, célzott VBA patch:
+   - audit írás után sorcount ellenőrzés,
+   - cfg_audit_max_rows olvasása Settings SSOT-ból,
+   - ha sorcount > limit, figyelmeztető audit/diagnosztikai jelzés,
+   - nincs automatikus törlés,
+   - nincs sémamigráció.
+5. Smoke test:
+   - audit sor létrejön,
+   - limit alatti állapot nem zajos,
+   - mesterséges limitcsökkentéssel warning előáll,
+   - workbook mentés/nyitás gyors marad,
+   - shape/drawing állapot nem változik.
+
+Munkamód LOCK a folytatáshoz:
+- Nem dolgozunk emlékezetből.
+- Első lépés mindig mérés.
+- Csak kis, célzott patch.
+- Eseménynaplóból nincs automatikus törlés.
+- Excel Copy/Paste alapú strukturális művelet továbbra is tiltott.
+- Minden érdemi változás után naplófrissítés, commit és push.
