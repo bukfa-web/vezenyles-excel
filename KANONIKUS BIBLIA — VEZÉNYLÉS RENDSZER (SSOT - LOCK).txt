@@ -7899,3 +7899,23 @@ Kanonikus Sofőrök struktúra:
 Hibakezelési szabály:
 - Munka2.Worksheet_Change hibaágban az Err.Number és Err.Description értékeket az Application.Undo előtt kell eltárolni.
 - Üres Err 0 üzenet nem elfogadható diagnosztikai eredmény.
+
+[2026-04-22 22:45:00 | LOCK PONTOSÍTÁS — TELJES REGRESSZIÓ]
+
+Kanonikus regressziós belépési pontok:
+- Regression_RunAll: teljes regresszió, opcionális felhasználói üzenettel.
+- Regression_Smoke_Test: nem interaktív teljes regresszió.
+
+Kötelező regressziós lefedés:
+- SoforLista tábla/stílus.
+- Beállítások/render/protect alapútvonal.
+- Színek paletta alkalmazás.
+- Sofőrmozgatás 1->2->1 visszarendezéssel.
+- Snapshot készítés.
+- Snapshot visszaállítás.
+- Runtime integritás.
+- Strukturális őrök: Vezénylés Shape.Count=4, SoforLista=A1:D25, _Pillanatkep VeryHidden.
+
+Elfogadási szabály:
+- REGRESSION_END fail=0 szükséges a munkacsomag zöldítéséhez.
+- Regresszió után OpenXML kontroll nem mutathat repairLoad jelet.

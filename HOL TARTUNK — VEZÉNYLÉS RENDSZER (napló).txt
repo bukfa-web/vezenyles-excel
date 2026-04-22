@@ -3102,3 +3102,39 @@ Objektív visszamérés:
 
 Megjegyzés:
 - A teszt után a mentett workbook állapota megőrzésre került.
+
+[2026-04-22 22:45:00 | FUNKCIÓ — TELJES REGRESSZIÓS TESZTCSOMAG]
+
+Munkacsomag célja:
+- Egyetlen makróval visszamérni a fő rendszerfunkciókat és szerkezeti őröket.
+- A regresszió nem interaktív módban is futtatható legyen, Eseménynapló összefoglalóval.
+
+Implementáció:
+- Új modul: modRegression.
+- Fő belépési pont: Regression_RunAll.
+- Nem interaktív smoke belépési pont: Regression_Smoke_Test.
+
+Lefedett lépések:
+- SOFOR_TABLE: SoforLista tábla/stílus őrzés.
+- SETTINGS_APPLY: render/settings protect/buttons.
+- PALETTE: paletta smoke.
+- SOFOR_MOVE: sofőrmozgatás 1->2->1 visszarendezéssel.
+- SNAPSHOT_CREATE: pillanatkép készítés.
+- SNAPSHOT_RESTORE: pillanatképből visszaállítás smoke.
+- INTEGRITY: runtime integritásmérés.
+- STRUCTURE: Vezénylés Shape.Count, SoforLista tartomány, _Pillanatkep VeryHidden.
+
+Visszamérés:
+- Regression_Smoke_Test lefutott.
+- REGRESSION_END: pass=8; fail=0; elapsedMs=18101,6.
+- Lépésidők: SoforTable 46,9 ms; Settings 3929,7 ms; Palette 101,6 ms; SoforMove 4679,7 ms; SnapshotCreate 1085,9 ms; SnapshotRestore 7960,9 ms; Integrity 54,7 ms; Structure 0,0 ms.
+- Vezénylés Shape.Count=4.
+- SoforLista=A1:D25.
+- _Pillanatkep Visible=2, VeryHidden.
+- AuditRows=2000.
+- Normál megnyitás regresszió után: OK.
+- OpenXML: repairLoad=False, twoCellAnchor=4, pic=4, graphicFrame=0, Vezénylés dimension=A1:CM372.
+
+Következmény:
+- Van gombnyomás/Immediate futtatás alapú teljes rendszer-regresszió.
+- Új funkciók előtt és nagy javítások után ezt kell futtatni.
