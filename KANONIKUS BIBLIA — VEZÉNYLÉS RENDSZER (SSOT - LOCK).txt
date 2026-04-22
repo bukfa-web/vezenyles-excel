@@ -7838,3 +7838,18 @@ Audit szabály:
 UI szabály:
 - A Beállítások lapon külön gomb használható: Pillanatkep keszitese.
 - A gomb OnAction célja: Snapshot_CreateSafetyPoint.
+
+[2026-04-22 21:25:00 | LOCK PONTOSÍTÁS — PILLANATKÉP VISSZAJELZÉS]
+
+UI szabály:
+- A biztonsági pillanatkép elkészültét a Beállítások lapon látható státuszblokkban is jelezni kell.
+- Státuszblokk helye: K10:O14.
+- Kötelező mezők: Időpont, Sofőrök tartomány, Vezénylés tartomány, Állapot.
+
+Gombok:
+- Pillanatkep keszitese -> Snapshot_CreateSafetyPoint.
+- Pillanatkep adatai -> Snapshot_ShowInfo.
+
+Határ:
+- A pillanatkép készítés munkacsomag nem jelent visszaállítást.
+- Visszaállítás csak külön mért és auditált munkacsomagban vezethető be.

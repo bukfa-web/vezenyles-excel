@@ -2969,3 +2969,34 @@ Mérés:
 Következmény:
 - A munkafüzeten belüli utolsó biztonsági pillanatkép elkészíthető és auditálható.
 - A következő logikus munkacsomag a pillanatképből való visszaállítás megtervezése és implementálása.
+
+[2026-04-22 21:25:00 | JAVÍTÁS — PILLANATKÉP LÁTHATÓ VISSZAJELZÉS]
+
+Felhasználói visszajelzés:
+- A Pillanatkep keszitese gomb megtalálható volt.
+- Nem volt elég egyértelmű, hol látszik az elkészült pillanatkép állapota, hogyan nézhető meg, és a visszaállítás még nem létezett.
+
+Pontosítás:
+- A visszaállítás nem része az 1. munkacsomagnak, az külön 2. munkacsomag lesz.
+- Az Eseménynaplóban a teszt alatt már megjelent a SNAPSHOT_BEGIN és SNAPSHOT_END sor, de felhasználói oldalon ez nem volt elég kényelmes visszajelzés.
+
+Javítás:
+- A Beállítások lapon látható státuszblokk készült: K10:O14.
+- A státusz tartalma: utolsó pillanatkép időpontja, Sofőrök tartomány, Vezénylés tartomány, állapot=Elkészült.
+- Új gomb: btnSnapshotInfo -> Snapshot_ShowInfo, felirata: Pillanatkep adatai.
+- A Snapshot_CreateSafetyPoint a státuszblokkot minden sikeres pillanatkép után frissíti.
+- A Snapshot_InsertOrUpdateButton most a készítés és adatok gombot is biztosítja.
+
+Visszamérés:
+- Státusz: Utolsó pillanatkép / Elkészült.
+- Időpont: 2026.04.22 21:21:57.
+- Sofőrök: A1:D25 | 25 sor x 4 oszlop.
+- Vezénylés: A1:S372 | 372 sor x 19 oszlop.
+- Beállítások Shape.Count=3.
+- Gombok: btnSettingsApply, btnSnapshotCreate, btnSnapshotInfo.
+- SnapshotVisible=2, azaz VeryHidden.
+- OpenXML kontroll: repairLoad=False, twoCellAnchor=4, pic=4, graphicFrame=0.
+
+Következmény:
+- Az 1. munkacsomag már nemcsak elkészíti, hanem felhasználó számára láthatóan visszajelzi a pillanatkép állapotát.
+- A visszaállítás továbbra is külön következő munkacsomag.
