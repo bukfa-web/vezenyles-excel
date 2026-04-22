@@ -2447,3 +2447,69 @@ Következő implementációs irány:
   - audit warning / diagnosztikai jelzés,
   - nincs automatikus törlés.
 - Ezt kis, célzott VBA patchként kell megvalósítani a modAudit környékén.
+
+[2026-04-22 | CLEANUP — VEZÉNYLÉS USED RANGE SOR-MARADVÁNYOK]
+
+Felhasználói irány:
+- Audit limit figyelmeztetés bekötése előtt tiszta workbook példányon dolgozzunk.
+- Ne építsünk új logikát felesleges rejtett/formázott maradványokra, mert később hibába futhatunk.
+
+Előzetes mérés:
+- Vezénylés dimension tisztítás előtt:
+  - A1:CM1083 / openpyxl mérésben A1:BU1083
+- cfg_data_last_row:
+  - 370
+- 373 utáni sorok mérése:
+  - row_elements = 711
+  - hidden_rows = 711
+  - cells = 2145
+  - cells_with_value_or_formula = 0
+  - cells_style_only = 2145
+  - merge_cells_after_372 = 0
+  - conditional_formatting_after_372 = 0
+  - data_validations_after_372 = 0
+
+Oszlopirányú mérés:
+- Y utáni oszlopokban a 372-ig tartó tartományon belül volt valódi payload.
+- Emiatt oszlopokat nem tisztítottunk.
+- Csak a 373 utáni sor-maradványok kerültek eltávolításra.
+
+Tisztítás módja:
+- OpenXML fájlszintű célzott tisztítás.
+- Csak a Vezénylés lap sheetData részéből töröltük a 373 feletti row elemeket.
+- Nem használtunk Excel Copy/Paste műveletet.
+- Nem nyúltunk shape/drawing objektumokhoz.
+- Nem nyúltunk a 372-ig tartó üzemi tartalomhoz.
+- A módosítás előtt biztonsági mentés készült.
+
+Tisztítás eredménye:
+- Eltávolított sor XML elemek:
+  - 711
+- Eltávolított style-only cellák:
+  - 2145
+- Vezénylés dimension tisztítás után:
+  - A1:CM372 / openpyxl mérésben A1:BU372
+- 373 utáni maradványok visszamérése:
+  - row_elements = 0
+  - hidden_rows = 0
+  - cells = 0
+  - cells_with_value_or_formula = 0
+  - cells_style_only = 0
+
+Drawing / shape kontroll:
+- xl/drawings/drawing1.xml változatlan:
+  - bytes = 7059
+  - twoCellAnchor = 4
+  - pic = 4
+  - graphicFrame = 0
+- A takarítás nem hozott létre új shape/graphic objektumot.
+
+Workbook méret:
+- Tisztítás előtt kb. 270765 byte.
+- Tisztítás után kb. 228812 byte.
+
+Kanonikus következmény:
+- A Vezénylés lap sorirányú UsedRange-maradványa tisztítva.
+- A cfg_data_last_row = 370 továbbra is kanonikus adattér-határ.
+- A 372. sor a 2 fejlécsor + 370 kezelt nap logikája miatt marad a tiszta technikai végpont.
+- A további audit limit fejlesztést már ezen a tisztább workbook állapoton lehet folytatni.
