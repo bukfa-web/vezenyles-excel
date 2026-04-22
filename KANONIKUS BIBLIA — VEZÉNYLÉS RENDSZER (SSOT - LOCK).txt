@@ -7802,3 +7802,16 @@ Audit szabály:
 
 Technikai tilalom:
 - A modern Excel helyi menüjébe statikusan beékelt CommandBars("Cell") elem nem tekinthető elfogadott üzemi megoldásnak, mert a felületen nem jelent meg megbízhatóan.
+
+[2026-04-22 21:05:00 | LOCK MEGERŐSÍTÉS — PALETTA ÉS SOFŐRREL MOZGÓ SZÍNEK]
+
+Elfogadott állapot:
+- A jobbklikkes saját paletta üzemi használatra alkalmas.
+- A paletta alkalmazás auditálása kötelező: PALETTE_RIGHTCLICK és PALETTE_APPLY.
+- A cellakitöltés és betűszín sofőrhöz tartozó üzemi adatként kezelendő.
+- Sofőrmozgatáskor a színezésnek a sofőrrel együtt kell mozognia.
+
+Paletta-formátum szabály:
+- A Színek lap C oszlopa nemcsak hex kód, hanem alkalmazási minta is.
+- Sötét kitöltésű palettaszínhez olvasható világos betűszín tartozik.
+- Fehér kitöltésű állapotoknál a betűszín hordozhat üzemi különbséget.

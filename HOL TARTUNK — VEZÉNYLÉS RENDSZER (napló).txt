@@ -2902,3 +2902,35 @@ Visszamérés:
 Hátralévő kézi ellenőrzés:
 - Felhasználói oldalon újranyitás után Vezénylés napi cellán jobb kattintás: saját Vezenyles szin popupnak kell megjelennie.
 - Sikeres választás után PALETTE_APPLY audit sornak kell keletkeznie.
+
+[2026-04-22 21:05:00 | FELHASZNÁLÓI TESZT VISSZAMÉRÉS — JOBBKLIKK PALETTA ÉS SOFŐRMOZGATÁS]
+
+Felhasználói teszt eredménye:
+- A jobbklikkes saját paletta üzemszerűen megjelent és használható volt.
+- Egycellás és többcellás színezés is történt.
+- Sofőrmozgatás után a cellaszínek a sofőr oszlopával együtt mozogtak.
+
+Objektív visszamérés a mentett workbookon:
+- Vezénylés Shape.Count=4.
+- AuditRows=2000.
+- PALETTE_RIGHTCLICK sorok a mintában: 22.
+- PALETTE_APPLY sorok a mintában: 20.
+- Sofőr/vezénylés oszlopmozgatási sorok a mintában: 15.
+- Integritási sorok a mintában: 9.
+- Többcellás színezési audit bizonyított: B96:F96, B97:J97, G96:J96.
+- Sofőrmozgatás után INTEGRITY_SNAPSHOT_OK sorok keletkeztek, row/header mismatch nélkül.
+
+Korrekció:
+- A Színek lap C oszlopának paletta betűszínei újranormalizálva lettek.
+- Sötét palettaszínek: fehér betű.
+- Kiosztva: fehér alapon fekete betű.
+- Nincs kiosztva: fehér alapon piros betű.
+
+OpenXML kontroll:
+- repairLoad=False.
+- Vezénylés drawing: twoCellAnchor=4, pic=4, graphicFrame=0.
+- Vezénylés dimension=A1:CM372.
+
+Következmény:
+- A jobbklikkes paletta munkacsomag üzemi szinten elfogadhatónak tekinthető.
+- A cellaszín üzemi adatként való sofőrrel együtt mozgása kézi és audit alapú teszttel bizonyított.
