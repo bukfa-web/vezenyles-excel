@@ -1743,3 +1743,94 @@ Technikai következmény:
 - A művelet előtt és után Shape.Count ellenőrzés fut; eltérés esetén auditált hiba keletkezik.
 - Temp teszt eredménye: B->D próbamozgatásnál az értékek és kitöltési színek együtt mozogtak, Shape.Count 4 -> 4 maradt.
 - Mért temp futás: kb. 11,0 s három sofőroszlop érintésével; későbbi fókusz lehet célzott teljesítményoptimalizálás.
+
+[2026-04-22 | FOLYTATÁSI TERV — SSOT ALAPÚ MUNKAREND]
+
+Kiinduló dokumentumok:
+- KANONIKUS BIBLIA — VEZÉNYLÉS RENDSZER (SSOT - LOCK).txt
+- HOL TARTUNK — VEZÉNYLÉS RENDSZER (napló).txt
+
+Kanonikus aktuális állapot:
+- A projekt forrása továbbra is a karcsú baseline:
+  - Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+  - HOL TARTUNK napló
+  - KANONIKUS BIBLIA
+- A CLEAN workbook csak üzemi lapokat tartalmazhat.
+- Diagnosztikai/mérési lapok és modulok csak ideiglenesen használhatók, lezárás után törlendők.
+- A sofőrsorrend üzemi szabálya MOVE / INSERT szemantika.
+- A Vezénylés lapon a sofőr teljes oszlopa identitásként mozog.
+- Copy/Paste, PasteSpecial, Copy Destination, Cut/Paste, Duplicate és temp oszlopos mozgatás továbbra is tilos.
+- Shape/Graphic szennyeződés nem térhet vissza; Shape.Count és HiddenGraphic őrszabály kötelező.
+
+Rögzített folytatási irány:
+1. Első körben nem új funkciót építünk rá vakon, hanem a 2026-04-21 21:41:28-kor rögzített copy-mentes sofőroszlop MOVE implementációt stabilizáljuk és bizonyítjuk.
+2. A bizonyítás után lehet továbblépni a Vezénylés V2 fejlesztési sorrend következő elemeire.
+3. Minden további fejlesztés előtt és után frissül a HOL TARTUNK napló.
+4. A Biblia LOCK szabályai felülírnak minden korábbi, történeti megfogalmazást.
+
+Közvetlen következő munkacsomag: P1 stabilizálás — copy-mentes sofőroszlop MOVE bizonyítása
+
+Cél:
+- Bizonyítani, hogy a sofőroszlop-mozgatás teljes oszlopidentitást mozgat, adatkeveredés és drawing objektumszaporodás nélkül.
+
+Kötelező ellenőrzések:
+- MOVE / INSERT sorrendteszt több irányban:
+  - elejéről középre,
+  - középről elejére,
+  - végéről középre,
+  - szomszédos mozgatás.
+- Minden tesztnél ellenőrizni kell:
+  - fejléc 1. sor: sofőr neve,
+  - fejléc 2. sor: vontató / pótkocsi,
+  - napi cellaértékek és képletek,
+  - kitöltési színek és pattern,
+  - fő betű- és igazítási állapotok,
+  - zárolás,
+  - Sofőrök SSOT és Vezénylés oszloprend egyezése,
+  - Shape.Count változatlan,
+  - HiddenGraphic nem keletkezik.
+
+Kockázatok:
+- A jelenlegi implementáció a napló szerint a megjegyzést, validációt, hiperhivatkozást és egyéb cellaobjektumot még nem kezeli explicit üzemi adatként.
+- Ez nem hiba a jelen körben, de ha ezek üzemi adattá válnak, külön LOCK-kiegészítés és külön implementáció kell.
+- A kb. 11 másodperces temp mérés elfogadható bizonyítási alap, de később lehet teljesítményoptimalizálási fókusz.
+
+Kilépési feltétel:
+- A fenti tesztek a CLEAN workbook másolatán sikeresek.
+- Nincs Shape.Count növekedés.
+- Nincs HiddenGraphic növekedés.
+- A sofőrrel együtt mozognak az értékek, képletek, színek és fő formátumok.
+- A runtime SSOT integritásmérés minden MOVE végén zöld.
+- A workbook mentése és megnyitása továbbra is gyors.
+
+Második munkacsomag: P1 lezárás — oszlopmozgatás üzemi elfogadása
+
+Cél:
+- A bizonyított MOVE implementációt üzemi szempontból elfogadni vagy célzottan javítani.
+
+Teendők:
+- Ha a teszt hibát talál, csak célzott javítás készül a modColumnMove környékén.
+- Ha nincs hiba, a funkciót kanonikusan elfogadottnak tekintjük.
+- A naplóban rögzítjük a mérési eredményeket és a végső döntést.
+
+Harmadik munkacsomag: P2 előkészítés — színezési és validációs irány
+
+Cél:
+- A Színek lap palettaalapú üzemi cellaszínezését és a későbbi foreign/duplicate validációt úgy tervezzük tovább, hogy ne bontsa meg a már bizonyított sofőroszlop-identitást.
+
+Előfeltétel:
+- Csak akkor indulhat, ha a P1 MOVE bizonyítás lezárult.
+
+Későbbi V2 sorrend:
+- foreign vehicle felismerés,
+- driver/truck/trailer duplicate ellenőrzés,
+- állapotgép,
+- audit bővítés,
+- diagnosztikai nézet,
+- snapshot archív réteg.
+
+Munkamód LOCK:
+- Nem dolgozunk emlékezetből.
+- Minden kör elején a Biblia és a napló aktuális állapota az irányadó.
+- Excel workbook módosítás csak bezárt Excel mellett commitolható.
+- Ha engedély kell, azt magyarul kérjük.
