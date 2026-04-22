@@ -2254,3 +2254,106 @@ Kilépési feltétel:
 - Az audit méretkorlát és retenciós szabály dokumentált.
 - Nincs automatikus adatvesztés, nincs csendes audit törlés.
 - A workbook továbbra is gyorsan nyílik és menthető.
+
+[2026-04-22 | MÉRÉS — SETTINGS / VEZÉNYLÉS STRUKTÚRA / ESEMÉNYNAPLÓ]
+
+Mérési cél:
+- A következő implementáció előtt tényleges workbook-állapotot mértünk.
+- A mérés olvasó jellegű volt; a workbook nem lett mentve és nem lett módosítva.
+
+Workbook:
+- Vezénylés_Stabil_2026.04.21_CLEAN.xlsm
+
+Laplista:
+- Vezénylés
+- Sofőrök
+- Színek
+- Fuvarok
+- Eseménynapló
+- Beállítások
+
+Beállítások lap:
+- Használt tartomány: A1:J50
+- cfg_* kulcsok száma: 14
+- Mért kulcsok:
+  - cfg_date_col_width = 5
+  - cfg_driver_col_width = 22
+  - cfg_header_row1_height = 19
+  - cfg_header_row2_height = 19
+  - cfg_data_row_height = 52,5
+  - cfg_data_last_row = 370
+  - cfg_freeze_cell = B3
+  - cfg_freeze_enabled = 1
+  - cfg_visible_past_days = 10
+  - cfg_visible_future_days = 10
+  - cfg_hide_outside_window = 1
+  - cfg_driver_extra_cols = 3
+  - cfg_driver_source_mode = SOFOROK_AUTO
+  - cfg_driver_fixed_count = 0
+- A workbook-szintű cfg_* named range-ek léteznek és a Beállítások I oszlop megfelelő celláira mutatnak.
+- cfg_audit_max_rows még nem létezik.
+
+Vezénylés lap:
+- Használt tartomány: A1:BU1083
+- Mért freeze_panes: B103
+- Mért fő méretek:
+  - 1. sor magasság: 19,05
+  - 2. sor magasság: 19,05
+  - adatsorok mért magassága: 52,5
+  - A oszlop szélesség: kb. 5,78
+  - B/Y sofőroszlop szélesség: kb. 22,78
+- Rejtett sorok az első 1000 sorban:
+  - count = 977
+  - az első mért rejtett sorok: 3..32
+  - az utolsó mért rejtett sorok: 971..1000
+
+Eseménynapló lap:
+- Használt tartomány: A1:F2001
+- Nem üres sorok száma: 2001
+- Tábla:
+  - tblEsemenynaplo
+  - ref = A1:F2001
+- Mért fejléc:
+  - ts
+  - severity
+  - action
+  - target
+  - details
+  - proc
+
+Drawing / shape mérés:
+- xl/drawings/drawing1.xml:
+  - bytes = 7059
+  - twoCellAnchor = 4
+  - pic = 4
+  - graphicFrame = 0
+- xl/drawings/drawing2.xml:
+  - bytes = 3824
+  - twoCellAnchor = 2
+  - pic = 0
+  - graphicFrame = 0
+- xl/drawings/drawing3.xml:
+  - bytes = 1547
+  - twoCellAnchor = 1
+  - pic = 0
+  - graphicFrame = 0
+
+Kivizsgálandó eltérések:
+- cfg_freeze_cell = B3, de a workbook mért freeze_panes értéke B103.
+- cfg_data_last_row = 370, de a Vezénylés használt tartománya A1:BU1083.
+- A Biblia korábbi audit mezői és a tényleges Eseménynapló fejléce nem teljesen azonos:
+  - korábbi kanonikus mezők: ts, user, sheet, action, target, details
+  - tényleges mezők: ts, severity, action, target, details, proc
+- Az Eseménynapló már 2001 nem üres sort tartalmaz, ezért a méretkorlát nem elméleti kérdés.
+
+Következő lépés — mérnöki döntési pont:
+1. Eldönteni, hogy az Eseménynapló tényleges mezősora marad-e kanonikusnak:
+   - ts, severity, action, target, details, proc
+2. Eldönteni, hogy kell-e user/sheet mező bővítés vagy a details/proc mezők elegendők.
+3. Bevezetni a cfg_audit_max_rows kulcsot a Beállítások lapra:
+   - javasolt érték: 5000
+4. Kivizsgálni a freeze eltérést:
+   - miért B103 a tényleges freeze, ha az SSOT B3.
+5. Kivizsgálni a Vezénylés tartományt:
+   - miért A1:BU1083 a használt tartomány, ha cfg_data_last_row = 370.
+6. Csak ezek után nyúlunk VBA-hoz vagy workbook-struktúrához.
