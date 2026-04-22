@@ -1987,6 +1987,10 @@ Fejlesztési terv — rendszerlogikai sorrend
   - felhasználó által választható,
   - később Data Validation listából vagy kontrollált választóból jöhet,
   - kézi módosítás megengedett, de auditálható.
+- Jövőbeni fuvarok:
+  - a jelenlegi üzemi mintában a jövőbeni fuvarok piros betűvel jelennek meg,
+  - ez nem egyszerű formázás, hanem üzemi figyelemfelhívás,
+  - a beemelési logikának meg kell őriznie ezt a jelentést.
 - Tiltott működés:
   - meglévő napi fuvarcellák automatikus kitakarítása,
   - múltbeli fuvarok felülírása,
@@ -2044,3 +2048,81 @@ Szigorú döntési szabály:
 - Ha egy fejlesztés kényelmes, de sérti az SSOT-t, nem kerülhet be.
 - Ha egy fejlesztés működik egy példán, de nem mérhető és nem ismételhető, nem tekinthető késznek.
 - Ha egy módosítás Excel objektummásolással shape/graphic kockázatot hoz vissza, nem kanonikus.
+
+[2026-04-22 | VIZUÁLIS ÜZEMI MINTA — JELENLEGI TÁBLA, JÖVŐBENI FUVAROK, SZÍNEK LAP]
+
+Forrás:
+- Felhasználó által csatolt képek a jelenlegi használt vezénylési tábláról.
+- Felhasználó által csatolt kép a jövőbeni fuvarok megjelenéséről.
+- Felhasználó által csatolt kép a Színek munkalapról.
+
+Kanonikus értelmezés:
+- A jelenlegi táblakép nem díszítés, hanem üzemi munkanézet.
+- A sor- és oszlopelrendezés, a fejléc ismétlődése, a dátumoszlopok, a sofőroszlopok, a cellaszínek és a betűszínek együtt adják a fuvarszervezői használhatóságot.
+- A jövőbeni rendszernek ezt a munkanézetet kell stabilizálnia, nem lecserélnie egy idegen logikára.
+
+Elrendezési megfigyelések:
+- A Vezénylés lapon a dátum/napszám oszlop keskeny, mellette több sofőroszlop található.
+- A sofőroszlop fejléce több soros logikai egység:
+  - sofőr neve,
+  - vontató rendszám,
+  - pótkocsi rendszám.
+- A képen a fejlécblokk a táblában ismétlődik, hogy hosszabb időszak görgetésekor/nyomtatásakor is olvasható maradjon.
+- A napi cellák nagy, jól olvasható beosztási cellák; a fuvarszöveg több sorba törhet.
+- A cellák háttérszíne és szövegszíne üzemi jelentést hordoz.
+
+Jövőbeni fuvarok megfigyelése:
+- A jövőbeni fuvarok a mintában piros betűvel szerepelnek.
+- A piros betű a jelenlegi használatban azt jelzi, hogy a fuvar előre látható / jövőbeni státuszú.
+- A jövőbeni fuvaroknál a háttérszín továbbra is hordozhat más státuszt, ezért a betűszín és háttérszín együtt értelmezendő.
+- A jövőbeni fuvarok beemelésekor a rendszernek nem szabad elveszítenie a piros betűs jelzést.
+
+Színek munkalap — rögzített paletta a csatolt kép alapján:
+- Szabadság:
+  - leírás: Okker Sárga
+  - kód: #FAD250
+- Pihenő idő:
+  - leírás: Ciklámén
+  - kód: #FF00FF
+- Munka megbeszélve:
+  - leírás: Világos zöld
+  - kód: #90EE90
+- 72-órás pihenő:
+  - leírás: Sötétzöld
+  - kód: #006400
+- Fuvar változás:
+  - leírás: Világos kék
+  - kód: #ADD8E6
+- Úton lévő autó:
+  - leírás: Világos barna
+  - kód: #CD853F
+- Szervíz / Műsza ki:
+  - leírás: Sötét barna
+  - kód: #654321
+- Kiosztva:
+  - leírás: Fehér alap / Fekete betű
+  - kód: #FFFFFF
+- Nincs kiosztva:
+  - leírás: Fehér alap / Piros betű
+  - kód: #FFFFFF
+- Hétvége:
+  - leírás: Szürke
+  - kód: #D3D3D3
+
+Vizuális LOCK szabály:
+- A színek nem esztétikai döntések, hanem üzemi státuszok.
+- A Színek munkalap palettája az SSOT; a Vezénylés lapon ebből kell értelmezni és később ebből kell alkalmazni a hivatalos színezést.
+- A háttérszín és a betűszín együtt alkothat státuszt.
+- A Nincs kiosztva és a jövőbeni fuvarok piros betűs jelzése külön figyelmet igényel, mert nem csak cella-háttérszín alapján azonosítható.
+- A sofőroszlop mozgatásnak a cellaérték mellett a háttérszínt és betűszínt is meg kell őriznie.
+- A render vagy fuvarbeemelés nem írhatja felül a kézi/üzemi színezést, ha annak státuszjelentése van.
+
+Következmény a fejlesztési tervre:
+- A színezési modell és a fuvarbeemelési modell nem választható szét teljesen.
+- A fuvar beemelésekor már ismerni kell:
+  - maga a fuvarszöveg,
+  - jövőbeni vagy aktuális jelleg,
+  - kiosztott / nincs kiosztva állapot,
+  - háttérszín státusz,
+  - betűszín státusz.
+- A validációs és állapotgép fejlesztésnél a cella vizuális állapota nem csak látvány, hanem domain adat.
