@@ -1834,3 +1834,181 @@ Munkamód LOCK:
 - Minden kör elején a Biblia és a napló aktuális állapota az irányadó.
 - Excel workbook módosítás csak bezárt Excel mellett commitolható.
 - Ha engedély kell, azt magyarul kérjük.
+
+[2026-04-22 | RENDSZERSZINTŰ ÉRTELMEZÉS — A VEZÉNYLŐ TÁBLA LÉNYEGE]
+
+Alapértelmezés:
+- A Vezénylés nem egyszerű Excel-tábla, hanem belső üzemi irányítópult.
+- A cél nem önmagában a látványos táblázat, hanem egy többfelhasználós, SSOT-alapú, hibára érzékeny vezénylési rendszer.
+- A rendszernek azt kell biztosítania, hogy a napi/heti operatív beosztás ne keveredjen, ne sérüljön, és minden kritikus változás visszakövethető legyen.
+
+Üzemi cél:
+- A felhasználók gyorsan lássák, hogy melyik napon melyik sofőr, milyen vontatóval, milyen pótkocsival, milyen fuvarral vagy állapottal van beosztva.
+- A kézi munka ott maradjon megengedett, ahol üzletileg szükséges:
+  - napi fuvarcellák,
+  - palettaalapú vagy kézi üzemi színezések,
+  - későbbi cellaszintű állapotok.
+- A rendszer viszont védje azokat a részeket, ahol a kézi beavatkozás adatkeveredést okozhat:
+  - sofőrsorrend,
+  - fejléc,
+  - oszlopidentitás,
+  - layout,
+  - SSOT-kapcsolatok,
+  - render/protection sorrend.
+
+Fő igazságforrások:
+- Sofőrök lap:
+  - sofőr neve,
+  - sorszam / sorrend,
+  - alap vontató,
+  - alap pótkocsi.
+- Beállítások lap:
+  - méretek,
+  - látható időablak,
+  - sofőrtartomány-számítás,
+  - működési paraméterek.
+- Színek lap:
+  - üzemi jelentésű színezési paletta.
+- Fuvarok / későbbi sablonlogika:
+  - fuvarok, sablonok, állapotok.
+- Eseménynapló:
+  - minden fontos művelet, hiba, figyelmeztetés és integritási esemény.
+
+Központi üzleti modell:
+- Egy sofőr oszlopa nem csak oszloppozíció.
+- Egy sofőr oszlopa teljes üzemi identitás:
+  - fejléc,
+  - alapjármű-információ,
+  - napi beosztások,
+  - cellaértékek,
+  - képletek,
+  - színek,
+  - formátumok,
+  - későbbi üzemi cellaállapotok.
+- Sorrendváltozáskor ezt az identitást kell mozgatni, nem a látványt újrarajzolni részlegesen.
+
+Adatbiztonsági alapelv:
+- A rendszer legnagyobb kockázata a csendes adatkeveredés.
+- Vizuálisan helyes, de tartalmilag hibás táblát nem szabad létrehozni.
+- Minden fejlesztést ahhoz kell mérni, hogy csökkenti-e vagy növeli-e az adatkeveredés esélyét.
+
+Render alapelv:
+- A Vezénylés lapnak determinisztikusan kell előállnia az SSOT-lapokból.
+- Ugyanaz a forrásállapot ugyanazt az üzemi nézetet eredményezze.
+- Kritikus üzemi logika nem épülhet rejtett fix cellacímekre vagy ad hoc tartományokra.
+- A render, layout, freeze és protection sorrendje kontrollált és reentrancy-védett.
+
+Validációs alapelv:
+- A rendszer nem csak tárol, hanem üzemi hibákat is felismer.
+- Felismerendő állapotok:
+  - sofőr saját alapjárműtől eltérő járművel megy,
+  - ugyanaz a sofőr több helyen szerepel,
+  - ugyanaz a vontató több helyen szerepel,
+  - ugyanaz a pótkocsi több helyen szerepel,
+  - sorrendváltozás után oszlopidentitás sérülne,
+  - render/protection/freeze integritási eltérés keletkezik.
+- A cél első körben jelzés és audit, később szükség szerint szigorúbb blokkolás.
+
+Mérnöki munkarend:
+- Minden fejlesztési kör mérésből indul.
+- Először a tényleges workbook állapotát mérjük, utána tervezünk, utána módosítunk.
+- Kis, visszaellenőrizhető lépésekben dolgozunk.
+- Egy kör egy világos kockázatot kezel.
+- Minden módosításnak legyen kilépési feltétele.
+- A tesztelés része a regresszió:
+  - régi működés nem romolhat,
+  - workbook nem lassulhat vissza,
+  - shape/graphic szennyeződés nem térhet vissza,
+  - SSOT-integritás nem sérülhet.
+- A dokumentáció nem utólagos adminisztráció, hanem a projekt vezérlőfelülete.
+
+Fejlesztési terv — rendszerlogikai sorrend
+
+0. Kanonikus állapot őrzése
+- Cél: a CLEAN workbook és a két dokumentációs fájl maradjon a munka alapja.
+- Kész állapot:
+  - git tiszta,
+  - nincs ideiglenes kanonikus fájl,
+  - workbook laplista és VBA komponenslista megfelel a LOCK-nak.
+
+1. Mérési és bizonyítási alap
+- Cél: legyen ismételhető ellenőrzési rend a kritikus állapotokra.
+- Mérendő:
+  - laplista,
+  - VBA komponensek száma,
+  - Vezénylés drawing anchor/picture/hidden graphic állapot,
+  - mentési idő,
+  - Sofőrök SSOT és Vezénylés oszloprend egyezése.
+- Kész állapot:
+  - a mérési módszer dokumentált,
+  - a baseline rögzített,
+  - csak ideiglenes mérési eszközök keletkeznek, lezárás után törölve.
+
+2. Sofőroszlop-identitás stabilizálása
+- Cél: bizonyítani, hogy a sofőr teljes oszlopa mozog és nem keveredik.
+- Ez a jelenlegi közvetlen P1 feladat.
+- Kész állapot:
+  - MOVE / INSERT több irányban tesztelve,
+  - értékek, képletek, színek, fő formátumok együtt mozognak,
+  - Shape.Count nem nő,
+  - HiddenGraphic nem nő,
+  - SSOT integritás zöld.
+
+3. Render pipeline és beállítási SSOT megszilárdítása
+- Cél: minden renderparaméter kontrollált forrásból jöjjön.
+- Kész állapot:
+  - cfg_* kulcsok egységesen olvashatók,
+  - nincs rejtett fix cellacím kritikus logikában,
+  - render/freeze/layout/protection sorrend rögzített és tesztelt.
+
+4. Üzemi színezési modell
+- Cél: a Színek lap palettája valódi üzemi jelentést kapjon.
+- Kész állapot:
+  - a paletta jelentése dokumentált,
+  - a cellaszínezés nem bontja meg az oszlopidentitást,
+  - sorrendváltozás után a színek a sofőrrel együtt maradnak.
+
+5. Foreign vehicle felismerés
+- Cél: jelezni, ha a napi beosztás eltér a Sofőrök lapon rögzített alapjárműtől.
+- Kész állapot:
+  - eltérés felismerve,
+  - vizuálisan jelölve,
+  - auditálva,
+  - nem tilt automatikusan.
+
+6. Duplikációellenőrzések
+- Cél: sofőr/vontató/pótkocsi ütközések felismerése.
+- Kész állapot:
+  - driver duplicate,
+  - truck duplicate,
+  - trailer duplicate,
+  - kombinált foreign+duplicate állapot,
+  - audit és vizuális jelzés.
+
+7. Állapotgép
+- Cél: a cellaállapotok ne széttartó szabályokból, hanem egységes állapotmodellből jöjjenek.
+- Kész állapot:
+  - normál,
+  - foreign,
+  - duplicate,
+  - foreign+duplicate,
+  - későbbi speciális állapotok egységesen kezelve.
+
+8. Audit és diagnosztikai nézet
+- Cél: az üzemi kockázatok és rendszerhibák átláthatók legyenek.
+- Kész állapot:
+  - minden kritikus esemény auditált,
+  - diagnosztikai nézet listázza az aktuális problémákat,
+  - nem kell a felhasználónak rejtett hibákat keresnie.
+
+9. Snapshot / történeti réteg
+- Cél: múltbeli állapotok megőrzése.
+- Kész állapot:
+  - napi/heti állapot visszakereshető,
+  - üzemi múlt nem sérül render vagy sorrendváltozás miatt.
+
+Szigorú döntési szabály:
+- Ha egy fejlesztés gyorsabb, de növeli a csendes adatkeveredés kockázatát, nem kerülhet be.
+- Ha egy fejlesztés kényelmes, de sérti az SSOT-t, nem kerülhet be.
+- Ha egy fejlesztés működik egy példán, de nem mérhető és nem ismételhető, nem tekinthető késznek.
+- Ha egy módosítás Excel objektummásolással shape/graphic kockázatot hoz vissza, nem kanonikus.
