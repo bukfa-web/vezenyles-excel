@@ -3041,3 +3041,41 @@ Mérés:
 Következmény:
 - A munkafüzetben már van kézzel indítható biztonsági mentési pont és abból kézzel indítható visszaállítás.
 - A visszaállítás működik, de a 10 mp körüli futási idő később optimalizálható, ha üzemi használatban zavaró.
+
+[2026-04-22 22:35:00 | HIBAJAVÍTÁS — SOFŐRÖK LAP STÍLUS ÉS SOFORLISTA TÁBLA]
+
+Felhasználói hiba:
+- A Sofőrök lap stílusa megváltozott.
+- Sofőr 1 és 2 cseréjénél üres Hiba üzenet jelent meg.
+- Auditban SOFOR_MOVE_ERROR Err 0 sorok keletkeztek.
+
+Feltárt ok:
+- A SoforLista Excel ListObject eltűnt a Sofőrök lapról.
+- Emiatt Munka2.Worksheet_Change a Me.ListObjects("SoforLista") ponton nem talált táblát.
+- A hibaág az Application.Undo után olvasta ki az Err objektumot, ezért az eredeti hiba kinullázódott és Err 0 / üres üzenet látszott.
+- A snapshot/restore munkacsomag után nem volt külön őrszabály a Sofőrök ListObject és táblastílus visszabiztosítására.
+
+Javítás:
+- Új modul: modSoforokTable.
+- Új őrfüggvény: Ensure_Soforok_Table_And_Style.
+- A SoforLista tábla hiány esetén újra létrejön A1:D25 tartományon, TableStyleMedium2 stílussal, sávos sorokkal és szűrővel.
+- Workbook_Open meghívja az Ensure_Soforok_Table_And_Style eljárást.
+- Snapshot_CreateSafetyPoint és Snapshot_RestoreSafetyPoint körben is biztosítva van a SoforLista tábla/stílus.
+- Munka2 hibakezelése javítva: errNum/errDesc mentés az Application.Undo előtt.
+- Ha mozgatáskor hiányzik a SoforLista, a kód megpróbálja helyreállítani, és csak utána folytatja.
+
+Visszamérés:
+- Soforok_Table_Smoke_Test: OK.
+- Snapshot_Smoke_Test: OK.
+- SoforLista létezik: Tables=1.
+- SoforLista Range=A1:D25.
+- RowStripes=True, Filter=True.
+- Tényleges sofőrmozgatási smoke: 1->2, majd 2->1 vissza: OK.
+- Mozgatás után INTEGRITY_SNAPSHOT_OK keletkezett.
+- Vezénylés Shape.Count=4.
+- Normál megnyitás: OK, SoforLista megmaradt.
+- OpenXML: repairLoad=False, twoCellAnchor=4, pic=4, graphicFrame=0.
+
+Következmény:
+- A Sofőrök lap táblastruktúrája mostantól őrzött rendszerkomponens.
+- A snapshot/restore funkció nem hagyhatja ListObject nélkül a Sofőrök lapot.

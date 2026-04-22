@@ -7883,3 +7883,19 @@ Audit szabály:
 UI szabály:
 - Beállítások lapon léteznie kell a Visszaallitas pillanatkepbol gombnak.
 - OnAction cél: Snapshot_RestoreSafetyPoint.
+
+[2026-04-22 22:35:00 | LOCK PONTOSÍTÁS — SOFORLISTA TÁBLA ŐRZÉSE]
+
+Kanonikus Sofőrök struktúra:
+- A Sofőrök lap A1:D25 tartománya SoforLista nevű Excel ListObject tábla.
+- A SoforLista tábla rendszerkomponens, nem törlendő és nem alakítható sima tartománnyá.
+- A tábla stílusa sávos, szűrős üzemi lista marad.
+
+Őrszabály:
+- Workbook_Open köteles biztosítani a SoforLista létezését és stílusát.
+- Snapshot készítés és snapshot visszaállítás után is biztosítani kell a SoforLista táblát.
+- Sofőrmozgatás előtt, ha a SoforLista hiányzik, a rendszer először helyreállítja.
+
+Hibakezelési szabály:
+- Munka2.Worksheet_Change hibaágban az Err.Number és Err.Description értékeket az Application.Undo előtt kell eltárolni.
+- Üres Err 0 üzenet nem elfogadható diagnosztikai eredmény.
