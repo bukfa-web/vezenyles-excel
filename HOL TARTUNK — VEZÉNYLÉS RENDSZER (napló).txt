@@ -2666,3 +2666,48 @@ OpenXML / megnyitás kontroll:
 Következő mérési fókusz:
 - A maradék idő főleg shiftMs és layoutMs; további gyorsítás csak újabb célzott mérés után.
 - Következő lépésként a modulok további audit-spam / felesleges render-hívás tisztítása mérhető cél lehet.
+
+[2026-04-22 19:22:25 | JAVÍTÁS + MÉRÉS — AUDIT-ZAJ CSÖKKENTÉSE]
+
+Kiinduló mérés az Eseménynapló utolsó 2000 során:
+- Severity: 1999 INFO, 1 WARN.
+- Legzajosabb actionök:
+  - SEL_BEFORE: 578
+  - SEL_PASS: 513
+  - RENDER_STEP_OK: 80
+  - VIEWPORT_STEP_OK: 72
+  - SEL_LOCK: 54
+  - SEL_INTERNAL_OK: 29
+  - ACTIVATE_BEGIN / ACTIVATE_END / WS_ACTIVATE: 23-23-23
+  - VW_SKIP_SAME_WINDOW: 19
+  - VW_REBUILD_BEGIN / VW_REBUILD_END / SETTINGS_PROTECT / VW_SCROLLROW_FIX: 17 körül
+- Legzajosabb proc: Munka1.Worksheet_SelectionChange = 1174 sor.
+
+Bevezetett megoldás:
+- modAudit központi INFO-szűrőt kapott: Audit_ShouldSuppress.
+- Csak INFO zajt szűrünk; WARN és ERROR mindig megmarad.
+- Üzleti / fontos események megmaradnak: SAVE_BEGIN/END, OPEN_BEGIN/END, RENDER_BEGIN/END, SETTINGS_APPLY_BEGIN/END, SOFOR_MOVE_*, VEZ_DRIVER_COL_MOVE_*, INTEGRITY_SNAPSHOT_OK stb.
+- modAudit retenció nem módosult: AUDIT_MAX_ROWS=2000 és Audit_Trim maradt.
+
+Szűrt INFO actionök:
+- SEL_BEFORE, SEL_PASS, SEL_INTERNAL_OK, SEL_LOCK
+- WS_ACTIVATE, ACTIVATE_BEGIN, ACTIVATE_END
+- VIEWPORT_BEGIN, VIEWPORT_STEP_OK, VIEWPORT_END
+- VW_SKIP_SAME_WINDOW, VW_VIEWPORT_OK, VW_SCROLLROW_FIX, VW_SCROLLCOL_FIX
+- RENDER_STEP_OK, FREEZE_OK
+- INTEGRITY_SNAPSHOT_STAGE_OK
+
+Smoke teszt temp workbookon:
+- 100 db Audit_Info SEL_BEFORE nem került be.
+- Audit_Info RENDER_BEGIN bekerült.
+- Audit_Warn SEL_BEFORE bekerült, tehát WARN nem szűrődik.
+
+Éles visszamérés:
+- 20 db Audit_Info SEL_BEFORE nem jelent meg az utolsó sorokban.
+- Audit_Warn SEL_BEFORE megjelent.
+- Render_Vezenyles_From_SSOT caller=AUDIT_NOISE_SMOKE után nem jelent meg új RENDER_STEP_OK vagy VIEWPORT_STEP_OK sor.
+- AuditRows továbbra is 2000, mert a régi Audit_Trim működés változatlan.
+
+Következmény:
+- A SelectionChange és stage-level render/viewport zaj nagyságrendileg csökken.
+- Az audit diagnosztikai értéke javul, mert a fontosabb események lassabban szorulnak ki a 2000 soros retencióból.

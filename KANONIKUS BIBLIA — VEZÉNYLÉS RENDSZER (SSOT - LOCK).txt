@@ -7718,3 +7718,15 @@ Sofőroszlop-mozgatás aktuális elfogadott implementációja:
 
 Audit retenció:
 - Ebben a körben nem módosult. AUDIT_MAX_ROWS=2000 és Audit_Trim marad.
+
+[2026-04-22 19:22:25 | LOCK PONTOSÍTÁS — AUDIT-ZAJ KEZELÉSE]
+
+Kanonikus audit elv:
+- WARN és ERROR sorokat tilos zajszűrővel eldobni.
+- INFO sorok közül a nagy gyakoriságú UI/trace/stage események szűrhetők, ha nem hordoznak önálló üzleti állapotot.
+- Üzleti események, mentés, megnyitás, settings apply, sofőrmozgatás, oszlopmozgatás és integritási összegzés megtartandó.
+
+Aktuális implementáció:
+- modAudit központi Audit_ShouldSuppress függvényt használ.
+- A szűrés csak sevINFO esetén érvényes.
+- AUDIT_MAX_ROWS=2000 és Audit_Trim továbbra is változatlanul marad.
