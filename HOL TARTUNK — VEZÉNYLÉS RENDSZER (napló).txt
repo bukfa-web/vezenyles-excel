@@ -3079,3 +3079,26 @@ Visszamérés:
 Következmény:
 - A Sofőrök lap táblastruktúrája mostantól őrzött rendszerkomponens.
 - A snapshot/restore funkció nem hagyhatja ListObject nélkül a Sofőrök lapot.
+
+[2026-04-22 22:40:00 | FELHASZNÁLÓI TESZT VISSZAMÉRÉS — SOFORLISTA ŐRZÉS, MOZGATÁS, SNAPSHOT]
+
+Felhasználói teszt eredménye:
+- A Sofőrök táblastílus visszaállt és stabil maradt.
+- Sofőrmozgatás 1->2 sikeresen lefutott.
+- Snapshot készítés és visszaállítás használható maradt.
+- Paletta alkalmazás és Beállítások érvényesítés is működött a javítás után.
+
+Objektív visszamérés:
+- SoforLista létezik: Tables=1.
+- SoforLista Range=A1:D25.
+- RowStripes=True, Filter=True.
+- Vezénylés Shape.Count=4.
+- AuditRows=2000.
+- A mintában a javítás utáni sofőrmozgatások SOFOR_MOVE_BEGIN/END sorokkal és INTEGRITY_SNAPSHOT_OK eredménnyel zártak.
+- A mintában látható 2 db SOFOR_MOVE_ERROR még a javítás előtti időablakból származik.
+- Snapshot restore sikeres: SNAPSHOT_RESTORE_END szerepel.
+- Paletta alkalmazás sikeres: PALETTE_APPLY szerepel.
+- OpenXML kontroll: repairLoad=False, twoCellAnchor=4, pic=4, graphicFrame=0, Vezénylés dimension=A1:CM372.
+
+Megjegyzés:
+- A teszt után a mentett workbook állapota megőrzésre került.
