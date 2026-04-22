@@ -1956,6 +1956,9 @@ Fejlesztési terv — rendszerlogikai sorrend
 
 3. Render pipeline és beállítási SSOT megszilárdítása
 - Cél: minden renderparaméter kontrollált forrásból jöjjön.
+- Kanonikus értelmezés:
+  - a Beállítások lap határozza meg a Vezénylés lap struktúráját, méreteit és látható működési tartományát,
+  - a Vezénylés lap nem önállóan formázott felület, hanem a Beállítások SSOT-ból felépített üzemi nézet.
 - Kész állapot:
   - cfg_* kulcsok egységesen olvashatók,
   - nincs rejtett fix cellacím kritikus logikában,
@@ -2032,8 +2035,13 @@ Fejlesztési terv — rendszerlogikai sorrend
 
 9. Audit és diagnosztikai nézet
 - Cél: az üzemi kockázatok és rendszerhibák átláthatók legyenek.
+- Kanonikus értelmezés:
+  - az Eseménynapló a rendszer visszakereshető történeti nyoma,
+  - audit nélkül a rendszer működése nem bizonyítható,
+  - az Eseménynapló méretkorlátját külön meg kell határozni, hogy a workbook hosszú távon se lassuljon el.
 - Kész állapot:
   - minden kritikus esemény auditált,
+  - audit méretkorlát és retenciós szabály rögzített,
   - diagnosztikai nézet listázza az aktuális problémákat,
   - nem kell a felhasználónak rejtett hibákat keresnie.
 
@@ -2126,3 +2134,123 @@ Következmény a fejlesztési tervre:
   - háttérszín státusz,
   - betűszín státusz.
 - A validációs és állapotgép fejlesztésnél a cella vizuális állapota nem csak látvány, hanem domain adat.
+
+[2026-04-22 | PONTOSÍTÁS — BEÁLLÍTÁSOK SSOT ÉS ESEMÉNYNAPLÓ RETENCIÓ]
+
+Felhasználói pontosítás:
+- A Beállítások lapon meghatározott értékek határozzák meg a Vezénylés lap struktúráját és méretezését.
+- Az Eseménynapló nagyon fontos része a projektnek, mert visszakereshetővé teszi a történéseket.
+- Az Eseménynapló méretkorlátját is meg kell határozni.
+
+Beállítások SSOT — aktuális képi baseline:
+- A csatolt képen a Beállítások lapon a kulcs-érték panel H:I:J oszlopban látható.
+- A H oszlop a kulcs, az I oszlop az érték, a J oszlop a magyarázat.
+- A bal oldali hónapkulcs-tábla külön segédtábla:
+  - month_key,
+  - month_num.
+- A Beállítások lapon van egy felhasználói műveletgomb:
+  - Változások érvényesítése.
+
+Aktuális beállításkulcsok a képen:
+- cfg_date_col_width = 5
+- cfg_driver_col_width = 22
+- cfg_header_row1_height = 19
+- cfg_header_row2_height = 19
+- cfg_data_row_height = 52,5
+- cfg_data_last_row = 370
+- cfg_freeze_cell = B3
+- cfg_freeze_enabled = 1
+- cfg_visible_past_days = 10
+- cfg_visible_future_days = 10
+- cfg_hide_outside_window = 1
+- cfg_driver_extra_cols = 3
+- cfg_driver_source_mode = SOFOROK_AUTO
+- cfg_driver_fixed_count = 0
+
+Kanonikus struktúraszabály:
+- A Vezénylés lap méretét, látható időablakát, fagyasztását, dátumoszlopát, sofőroszlop-szélességét és kezelt adattartományát a Beállítások lap vezérli.
+- A Vezénylés lapon nem lehet külön, rejtett logikával eltérő méretet vagy tartományt használni.
+- A Változások érvényesítése műveletnek a Beállítások SSOT-ból kell újraalkalmaznia:
+  - dátumoszlop szélesség,
+  - sofőroszlopok szélessége,
+  - fejlécsorok magassága,
+  - adatsorok magassága,
+  - technikai felső sorhatár,
+  - freeze,
+  - látható múlt/jövő időablak,
+  - időablakon kívüli sorok rejtése,
+  - sofőroszlopok számítási módja.
+- A Beállítások módosítása nem törölhet adatot és nem írhatja felül a kézi üzemi beosztást.
+
+Eseménynapló szerepe:
+- Az Eseménynapló nem opcionális kényelmi funkció, hanem a rendszer bizonyíthatósági rétege.
+- Minden kritikus eseménynek visszakereshetőnek kell lennie:
+  - workbook open / render / settings apply,
+  - Beállítások kulcs hiba vagy fallback,
+  - sofőrsorrend módosítás,
+  - sofőroszlop MOVE,
+  - Shape/HiddenGraphic őrszabály sérülés,
+  - fuvarbeemelés,
+  - foreign vehicle jelzés,
+  - duplicate jelzés,
+  - audit/diagnosztikai hiba.
+
+Eseménynapló méretkorlát — kanonikus tervezési döntés:
+- Be kell vezetni egy Beállítások-lapon vezérelt audit méretkulcsot:
+  - cfg_audit_max_rows
+- Javasolt induló alapérték:
+  - cfg_audit_max_rows = 5000
+- Értelmezés:
+  - ez az Eseménynapló élő, workbookban tartott maximális üzemi sorszáma,
+  - a limit célja a workbook méretének és sebességének védelme,
+  - a limit nem jelentheti a történeti bizonyítékok csendes elvesztését.
+
+Retenciós LOCK:
+- Amíg nincs külön archív/snapshot export réteg, az Eseménynapló nem törölhet automatikusan régi sorokat nyom nélkül.
+- Limit túllépéskor első ütemben:
+  - audit figyelmeztetés keletkezik,
+  - a rendszer jelezheti, hogy az Eseménynapló archiválása szükséges,
+  - nem történik csendes törlés.
+- Későbbi ütemben bevezethető archíválás:
+  - régi audit sorok exportálása külön archív fájlba vagy snapshot rétegbe,
+  - csak sikeres archíválás után lehet élő naplót ritkítani,
+  - az archívált intervallumot és fájlnevet külön auditálni kell.
+
+Következő mérnöki munkacsomag — Settings + Audit alap lezárása:
+1. Megmérni a CLEAN workbook tényleges Beállítások lapját:
+   - H:I:J kulcslista,
+   - workbook-szintű cfg_* named range-ek,
+   - az egyes cfg_* értékek típusa,
+   - Változások érvényesítése gomb bekötése.
+2. Megmérni a Vezénylés lap tényleges renderelt állapotát:
+   - dátumoszlop szélesség,
+   - sofőroszlop-szélességek,
+   - fejlécsor-magasságok,
+   - adatsor-magasságok,
+   - freeze állapot,
+   - látható/rejtett sorok.
+3. Megmérni az Eseménynapló tényleges állapotát:
+   - tábla létezik-e,
+   - oszlopok megfelelnek-e a kanonikus mezőknek,
+   - sorok száma,
+   - írási irány és teljesítmény,
+   - top-insert kikapcsolt állapotának következménye.
+4. Dokumentálni a cfg_audit_max_rows kulcsot:
+   - típus: egész szám,
+   - alapérték: 5000,
+   - minimum elfogadható érték: 1000,
+   - túl nagy értéknél figyelmeztetés szükséges.
+5. Csak ezután jöhet implementáció:
+   - Beállítások lap kulcsbővítés,
+   - named range rebind,
+   - Settings olvasó ellenőrzés,
+   - audit limit figyelmeztető logika,
+   - regressziós smoke test.
+
+Kilépési feltétel:
+- A Beállítások lap minden struktúrakulcsa mérve és named range-en keresztül olvasható.
+- A Vezénylés lap méretei és struktúrája bizonyíthatóan a Beállításokból jön.
+- Az Eseménynapló aktuális állapota mért.
+- Az audit méretkorlát és retenciós szabály dokumentált.
+- Nincs automatikus adatvesztés, nincs csendes audit törlés.
+- A workbook továbbra is gyorsan nyílik és menthető.
