@@ -3227,3 +3227,51 @@ Eredmény:
 
 Következmény:
 - Az egyszerű havi alapfuvar-beszúró funkció zöld regressziós állapotban van.
+
+[2026-04-23 10:20:00 | DIAGNOSZTIKA — REGRESSION_SMOKE_TEST UTÁNI EXCEL MENTÉSI HIBA]
+
+Kiinduló jelenség:
+- A 2-es gépen friss GitHub lehúzás után Excel-hiba jelentkezett.
+- Ezen az 1-es gépen a hiba reprodukálható diagnosztikai futtatással.
+
+Mért tények:
+- A GitHubról lehúzott tiszta XLSM megnyílik.
+- A munkafüzet ZIP-szerkezete, workbook.xml és a makrótartalom rendben van.
+- Sima Open -> Save működik.
+- A Regression_Smoke_Test lefut, de utána a Save és a SaveCopyAs is 1004 hibával elhasal.
+- Egy sikertelen mentési kísérlet a fájl méretét ténylegesen lerövidítette 534627 -> 425560 bájtra.
+- A sérült példány bizonyítékként elmentve:
+  C:\Users\bukfa\Documents\Codex\2026-04-22-tegnap-dolgoztunk-egy-projekten-egy-m\corrupted_after_regression_failed_save.xlsm
+- A repo példány utána Gitből visszaállítva; jelenlegi repo állapot tiszta.
+
+Lépésenkénti izoláció eredménye:
+- A regressziós lépések közül kizárólag a Regression_Step_SnapshotRestore után válik menthetetlenné a workbook.
+- Snapshot_Create önmagában még menthető.
+- A Snapshot_Restore belsejében a tartalom visszaírása (FormulaR1C1, NumberFormat, Interior.Pattern, Interior.Color, Font.Color) önmagában még menthető.
+- A törés a restore utáni Ensure_Soforok_Table_And_Style útvonalon jelenik meg.
+
+Kulcstények:
+- A restore utáni menthető baseline másolatban a Soforok lapon a SoforLista ListObject megszűnik (ListObjects.Count=0).
+- A restore utáni puszta ListObject.Add + névadás még menthető.
+- A restore utáni ListObject.Add + TableStyle + flag-ek (row stripes / autofilter) még menthető.
+- A workbook akkor válik menthetetlenné, amikor az újraépített SoforLista mellett a teljes A1:D25 tartományra bulk range formázás kerül.
+- Az első konkrétan hibás formázó lépés: rng.Font.Name / rng.Font.Size az A1:D25 tartományon restore után.
+
+Következtetés:
+- Ez nem általános Excel-cache vagy letöltési bizonytalanság, hanem reprodukált VBA/Excel mentési korrupciós útvonal.
+- A hiba jelenlegi forrása: Snapshot_Restore után az Ensure_Soforok_Table_And_Style túl agresszíven formázza a Soforok tartományt.
+
+Következő fejlesztési lépés:
+- Az Ensure_Soforok_Table_And_Style szétválasztása:
+  - safe rebuild ág snapshot restore után: ListObject létrehozás/resize, TableStyle, stripe/autofilter, szükséges fejlécértékek.
+  - teljes stilizáló ág csak olyan útvonalakon, ahol nem restore utáni sérülékeny workbook-állapoton fut.
+- A restore utáni ágban a teljes rng.Font.Name / rng.Font.Size és egyéb bulk range formázás nem futhat.
+- Javítás után kötelező újramérés:
+  - Regression_Smoke_Test
+  - Save
+  - SaveCopyAs
+  - git status tisztaság
+
+Átadási pont a 2-es géphez:
+- A vizsgálat lezárta, hogy a mentési hiba konkrétan a Snapshot_Restore -> Ensure_Soforok_Table_And_Style -> bulk font formatting útvonalon keletkezik.
+- A következő munkamenet első feladata a safe rebuild javítás implementálása és visszamérése.

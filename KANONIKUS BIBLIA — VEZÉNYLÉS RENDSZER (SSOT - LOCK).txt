@@ -7973,3 +7973,35 @@ Audit szabály:
 - Kezdés: FUVAR_FILL_BEGIN.
 - Sikeres lezárás: FUVAR_FILL_END, benne hónap, napok, fuvarok, beírt és kihagyott cellák száma.
 - Hiba: FUVAR_FILL_ERROR.
+
+[2026-04-23 10:20:00 | LOCK PONTOSÍTÁS — SNAPSHOT RESTORE + SOFORLISTA MENTÉSI SZABÁLY]
+
+Bizonyított technikai szabály:
+- Snapshot_Restore után a SoforLista ListObject nem tekinthető stabilan megőrzött objektumnak.
+- Restore után a SoforLista szükség esetén újraépíthető.
+- Restore után a SoforLista újraépítését követően tilos a teljes Soforok tartományon agresszív bulk range formázást futtatni.
+
+Kanonikusan megengedett restore utáni műveletek:
+- ListObject létrehozás vagy resize.
+- Tábla neve: SoforLista.
+- TableStyle beállítás.
+- Táblaflag-ek: ShowTableStyleRowStripes, ShowTableStyleColumnStripes, ShowAutoFilter.
+- Szükséges fejlécértékek helyreállítása.
+
+Restore utáni tiltott vagy kerülendő műveleti osztály:
+- A teljes A1:Dn tartományra alkalmazott bulk Font.Name / Font.Size írás.
+- Olyan teljes tartományos stilizálás, amely a frissen újraépített ListObjecttel kombinálva a workbook menthetőségét veszélyezteti.
+
+Elfogadási szabály:
+- Snapshot_Restore után a workbooknak Save és SaveCopyAs művelettel is menthetőnek kell maradnia.
+- A javítás csak akkor tekinthető elfogadottnak, ha:
+  - Regression_Smoke_Test zöld,
+  - Save zöld,
+  - SaveCopyAs zöld,
+  - a repo XLSM nem sérül és git status tiszta marad.
+
+Fejlesztési irány:
+- Az Ensure_Soforok_Table_And_Style felelősségét szét kell választani:
+  - restore-safe rebuild ág,
+  - teljes stilizáló ág.
+- Snapshot_Restore kizárólag a restore-safe ágat hívhatja.
