@@ -3368,3 +3368,31 @@ Záró visszamérés:
 Következmény:
 - A Beállítások lapon megadott látható múltbeli ablak nyitáskor is ténylegesen érvényesül.
 - A Vezénylés lap többé nem marad nyers, januárig visszagörgethető startup állapotban.
+
+[2026-04-23 23:05:00 | JAVÍTÁS + MÉRÉS — FUVAROK LAP GOMB ELHELYEZÉS]
+
+Felhasználói igény:
+- A Fuvarok lapon több napi alapfuvar is elférjen anélkül, hogy a gomb ráüljön a tartalomra.
+
+Kiinduló állapot:
+- A gomb fixen a P2 horgonyhoz volt kötve.
+- Ez működött a jelenlegi mintával, de szélesebb napi fuvarlista esetén a gomb és a tartalom összeérhetett volna.
+
+Javítás:
+- A modFuvarok gombelhelyező útvonala dinamikus lett.
+- A Fuvarok_InsertOrUpdateButton most a Fuvarok_GetButtonAnchor segédfüggvényt használja.
+- A horgony a kitöltött Fuvarok sorok közül a legszélesebb utolsó kitöltött oszlopa után 2 oszloppal kerül kiszámításra.
+- Minimum pozíció továbbra is P2, tehát a mostani rövidebb minták nem csúsznak balra.
+
+Visszamérés:
+- Jelenlegi minta:
+  - CURRENT_LASTCOL=14
+  - CURRENT_BUTTON_LEFT=825
+- Ideiglenesen kibővített minta:
+  - EXPANDED_LASTCOL=17
+  - EXPANDED_BUTTON_LEFT=969
+- Következtetés: a gomb a szélesebb mintával együtt kifelé tolódik, nem fedi a fuvarszövegeket.
+- Záró teszt:
+  - FUVAROK_SMOKE=OK
+  - REGRESSION_SMOKE=OK
+  - SAVE=OK

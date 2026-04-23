@@ -8054,3 +8054,20 @@ Elfogadási szabály:
   - a bounds előtti sorok Hidden=True
   - az első látható sor Hidden=False
 - A javítás csak akkor tekinthető lezártnak, ha Snapshot_Restore_Smoke_Test, Regression_Smoke_Test, Save és SaveCopyAs is zöld.
+
+[2026-04-23 23:05:00 | LOCK PONTOSÍTÁS — FUVAROK LAP GOMB ELHELYEZÉS]
+
+Kanonikus szabály:
+- A Fuvarok lap "Alapfuvarok beszurasa" gombja nem lehet fixen a jelenlegi minta szélességéhez kötve.
+- A gomb helyét mindig a kitöltött fuvarminták tényleges szélességéből kell számolni.
+- A gomb a legszélesebb kitöltött Fuvarok sor utolsó kitöltött oszlopa után 2 oszloppal jelenjen meg.
+- Minimum horgony pozíció marad P2, így rövidebb minta esetén a gomb nem csúszik balra a jelenlegi használathoz képest.
+
+Elfogadási szabály:
+- Szélesebb ideiglenes mintával a gombnak mérhetően jobbra kell kerülnie.
+- Kötelező minimális visszamérés:
+  - aktuális lastCol és button.Left rögzítése,
+  - kibővített minta melletti lastCol és button.Left rögzítése,
+  - Fuvarok_Smoke_Test zöld,
+  - Regression_Smoke_Test zöld,
+  - Save zöld.
