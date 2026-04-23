@@ -8036,3 +8036,21 @@ Elfogadási szabály:
 - Auditban a SNAPSHOT_RESTORE_END csak a restore-hoz tartozó render lezárása után jelenhet meg.
 - Restore közben a Vezénylés lap eseményei redirectelik a felhasználót a Beállítások lapra.
 - Kötelező visszamérés: Snapshot_Restore_Smoke_Test + Regression_Smoke_Test zöld.
+
+[2026-04-23 21:50:00 | LOCK PONTOSÍTÁS — VEZÉNYLÉS NYITÁSKORI VIEWPORT]
+
+Kanonikus szabály:
+- A Beállítások lapon számolt látható időablaknak nemcsak kattintáskor, hanem workbook megnyitásakor is érvényesülnie kell.
+- Ha a workbook a Vezénylés lapon nyílik meg, a startup render nem hagyhatja nyers állapotban a lapot.
+- Workbook_Open útvonalon a viewport refresh csak akkor halasztható, ha a megnyitáskor nem a Vezénylés lap az aktív lap.
+- Ha a megnyitás pillanatában a Vezénylés az aktív lap, a render részeként kötelező a viewport normalizálás, a scroll pozíció, a rejtések és a fagyasztás összehangolása.
+
+Elfogadási szabály:
+- Újranyitás után a mért induló állapotnak a számolt bounds-hoz kell igazodnia.
+- Kötelező minimális ellenőrzés:
+  - OPEN_SHEET=Vezénylés
+  - OPEN_SCROLL a számolt első látható sorra mutat
+  - OPEN_FREEZE=True
+  - a bounds előtti sorok Hidden=True
+  - az első látható sor Hidden=False
+- A javítás csak akkor tekinthető lezártnak, ha Snapshot_Restore_Smoke_Test, Regression_Smoke_Test, Save és SaveCopyAs is zöld.

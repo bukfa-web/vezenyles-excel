@@ -3327,3 +3327,44 @@ Visszamérés:
 Következmény:
 - A restore utáni "üresnek tűnő" átmeneti állapot mostantól el van zárva a felhasználó elől.
 - A pillanatképből visszaállítás UX-e egyértelműbb és biztonságosabb lett.
+
+[2026-04-23 21:50:00 | JAVÍTÁS + MÉRÉS — VEZÉNYLÉS NYITÁSKORI VIEWPORT NORMALIZÁLÁS]
+
+Kiinduló felhasználói hiba:
+- A Beállítások lapon megadott látható múltbeli ablakérték első ránézésre nem érvényesült.
+- Megnyitás után a Vezénylés lapon vissza lehetett görgetni januárig.
+- Kattintáskor a rendszer már visszaugrott a helyes határra, tehát a bounds-logika működött, de a nyitáskori nézet nem normalizálódott.
+
+Mérés:
+- A cfg_visible_past_days érték számolása helyes volt.
+- A kattintható első sor a mért bounds szerint: row 105 = APR 13.
+- Apply és Snapshot_Restore után ugyanaz a helyes bounds jött ki.
+- A valódi eltérés csak a Workbook_Open útvonalon jelent meg, amikor a fájl eleve a Vezénylés lapon nyílt meg.
+- Ezen az úton a render auditban viewport defer állapotba került, ezért a nyitáskori nézetben a januári sorok láthatók maradtak addig, amíg a felhasználó rá nem kattintott a lapra.
+
+Javítás:
+- A Render_Vezenyles_From_SSOT megnyitási útvonala pontosítva lett.
+- Workbook_Open híváskor a viewport refresh csak akkor halasztható, ha a megnyitás pillanatában nem a Vezénylés lap az aktív.
+- Ha a workbook közvetlenül a Vezénylés lapon nyílik meg, a startup render részeként a viewport normalizálás is kötelezően lefut.
+- A félkész aktívcella-clamp folt vissza lett dobva; csak a validált startup viewport javítás maradt bent.
+
+Záró visszamérés:
+- Snapshot_Restore_Smoke_Test: zöld.
+- Regression_Smoke_Test: zöld.
+- Save: zöld.
+- SaveCopyAs: zöld.
+- Save közvetlenül Vezénylés aktiválás után: zöld.
+- Újranyitás utáni mért állapot:
+  - OPEN_SHEET=Vezénylés
+  - OPEN_ACTIVE=B105
+  - OPEN_SCROLL=105
+  - OPEN_FREEZE=True
+  - ROW 3 HIDDEN=True
+  - ROW 4 HIDDEN=True
+  - ROW 5 HIDDEN=True
+  - ROW 104 HIDDEN=True
+  - ROW 105 HIDDEN=False
+
+Következmény:
+- A Beállítások lapon megadott látható múltbeli ablak nyitáskor is ténylegesen érvényesül.
+- A Vezénylés lap többé nem marad nyers, januárig visszagörgethető startup állapotban.
