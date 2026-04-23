@@ -8089,3 +8089,26 @@ Elfogadási szabály:
   - Fuvarok_Smoke_Test zöld,
   - Regression_Smoke_Test zöld,
   - Save zöld.
+
+[2026-04-24 00:10:00 | LOCK PONTOSÍTÁS — TESZTMAKRÓK AUTOMATA VS INTERAKTÍV MÓD]
+
+Kanonikus szabály:
+- A workbook tesztkészletében külön kell kezelni az automata (batch-kompatibilis) és az interaktív diagnosztikai makrókat.
+
+Automata / batch-kompatibilisnek tekintett kör:
+- Soforok_Table_Smoke_Test
+- Palette_Smoke_Test
+- Fuvarok_Smoke_Test
+- Snapshot_Smoke_Test
+- Snapshot_Restore_Smoke_Test
+- Regression_Smoke_Test
+
+Interaktív kör:
+- Test_VW
+- Test_VW_Diag
+- Regression_RunAll végső sikerüzenete
+
+Elfogadási szabály:
+- Teljes üzemi zöld állapot akkor mondható ki, ha az automata kör hiba nélkül lefut, és a Regression_RunAll felhasználói futtatásban pass=8; fail=0 eredményt ad.
+- Az interaktív MsgBox jelenléte önmagában nem funkcionális hiba.
+- Későbbi technikai javításként megengedett a tesztmakrók batch-kompatibilissé tétele, de ez nem előfeltétele az üzemi elfogadásnak.

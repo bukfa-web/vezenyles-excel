@@ -3424,3 +3424,28 @@ Visszamérés:
   - FUVAROK_SMOKE=OK
   - REGRESSION_SMOKE=OK
   - SAVE=OK
+
+[2026-04-24 00:10:00 | ÁLLAPOTRÖGZÍTÉS — TELJES TESZTKÖR ÖSSZEGZÉS]
+
+Felhasználói kérés:
+- A rendszer teljes jelenlegi tesztállapotának rögzítése, külön kiemelve, hogy mely makrók futnak automatikusan és melyek igényelnek kézi OK-t.
+
+Mért eredmények (beépített teszt/smoke makrók):
+- Soforok_Table_Smoke_Test: OK
+- Palette_Smoke_Test: OK
+- Fuvarok_Smoke_Test: OK
+- Snapshot_Smoke_Test: OK
+- Snapshot_Restore_Smoke_Test: OK
+- Regression_Smoke_Test: OK
+- Regression_RunAll: sikeres, kézi megerősítő ablakkal zár
+  - felhasználói képen igazolt eredmény: pass=8; fail=0; elapsedMs=46877,0
+
+Interaktív / nem teljesen batch-kompatibilis tesztek:
+- Test_VW: MsgBox ablakot nyit.
+- Test_VW_Diag: MsgBox ablakot nyit.
+- Regression_RunAll: a végén sikeres lezáró MsgBox-ot nyit, ezért automata körben nem tér vissza felhasználói OK nélkül.
+
+Következtetés:
+- Jelenleg ismert funkcionális hiba nem maradt.
+- A rendszer üzemi szinten zöld állapotban van.
+- A fennmaradó technikai hiányosság nem funkcionális, hanem teszt-UX jellegű: néhány diagnosztikai / regressziós makró még interaktív.
