@@ -8005,3 +8005,21 @@ Fejlesztési irány:
   - restore-safe rebuild ág,
   - teljes stilizáló ág.
 - Snapshot_Restore kizárólag a restore-safe ágat hívhatja.
+
+[2026-04-23 14:56:00 | LOCK PONTOSÍTÁS — SNAPSHOT RESTORE SAFE REBUILD]
+
+Kanonikus szabály:
+- Snapshot_Restore után a SoforLista újraépítése csak safe rebuild módban történhet.
+- Restore utáni safe rebuild feladata:
+  - SoforLista ListObject létrehozás vagy resize,
+  - kanonikus fejlécnevek biztosítása,
+  - TableStyle beállítása,
+  - row stripe és autofilter bekapcsolása.
+- Restore utáni safe rebuild tiltott része:
+  - teljes A1:D tartomány bulk Font.Name / Font.Size átírás,
+  - restore utáni agresszív teljes tartományformázás.
+
+Elfogadási szabály:
+- Snapshot_Restore után a workbooknak menthetőnek kell maradnia.
+- Kötelező visszamérés: Regression_Smoke_Test, Save, SaveCopyAs.
+- REGRESSION_END fail=0 és OpenXML repairLoad=False szükséges.

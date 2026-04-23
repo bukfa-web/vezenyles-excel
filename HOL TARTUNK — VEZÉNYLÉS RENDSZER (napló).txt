@@ -3275,3 +3275,28 @@ Következő fejlesztési lépés:
 Átadási pont a 2-es géphez:
 - A vizsgálat lezárta, hogy a mentési hiba konkrétan a Snapshot_Restore -> Ensure_Soforok_Table_And_Style -> bulk font formatting útvonalon keletkezik.
 - A következő munkamenet első feladata a safe rebuild javítás implementálása és visszamérése.
+
+[2026-04-23 14:56:00 | JAVÍTÁS + MÉRÉS — SNAPSHOT RESTORE SAFE REBUILD]
+
+Kiinduló hiba:
+- A Snapshot_Restore után a workbook menthetetlenné vált.
+- A diagnózis szerint a törés a Snapshot_Restore -> Ensure_Soforok_Table_And_Style -> bulk range font formatting útvonalon keletkezett.
+
+Javítás:
+- A modSoforokTable kétágú lett.
+- Normál ág: teljes tábla/stílus formázás.
+- Safe rebuild ág: restore után csak a SoforLista ListObject létrehozás/resize, fejlécek, TableStyle, stripes/autofilter fut.
+- A restore utáni útvonalon a teljes A1:D25 bulk Font.Name / Font.Size és egyéb agresszív tartományformázás nem fut.
+- Snapshot_RestoreSafetyPoint most az Ensure_Soforok_Table_And_Style False, True hívást használja.
+
+Visszamérés:
+- Célzott reprodukciós út lefutott: Regression_Smoke_Test -> Save -> SaveCopyAs.
+- Eredmény: mindhárom sikeres.
+- Audit: SNAPSHOT_RESTORE_END megjelent.
+- Audit: REGRESSION_END pass=8; fail=0; elapsedMs=22050,8.
+- Audit: SAVE_END Success=True a regresszió után.
+- OpenXML kontroll: repairLoad=False; Vezénylés dimension=A1:CM372; twoCellAnchor=4; pic=4; graphicFrame=0.
+
+Következmény:
+- A korábbi mentési korrupciós útvonal jelen körben megszűntnek tekinthető.
+- A safe rebuild restore utáni kötelező védelmi ág lett.
