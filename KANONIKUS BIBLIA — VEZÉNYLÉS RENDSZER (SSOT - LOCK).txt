@@ -8023,3 +8023,16 @@ Elfogadási szabály:
 - Snapshot_Restore után a workbooknak menthetőnek kell maradnia.
 - Kötelező visszamérés: Regression_Smoke_Test, Save, SaveCopyAs.
 - REGRESSION_END fail=0 és OpenXML repairLoad=False szükséges.
+
+[2026-04-23 16:25:00 | LOCK PONTOSÍTÁS — SNAPSHOT RESTORE LAPZÁR]
+
+Kanonikus szabály:
+- Snapshot_Restore közben a felhasználó nem léphet be a Vezénylés lap átmeneti állapotába.
+- Restore indulásakor a rendszer a Beállítások lapra vált és ott jelzi az állapotot.
+- A restore csak a safe rebuild + cache reset + Render_Vezenyles_From_SSOT lefutása után tekinthető késznek.
+- A Vezénylés lap csak a teljes frissítés lezárása után aktiválható vissza.
+
+Elfogadási szabály:
+- Auditban a SNAPSHOT_RESTORE_END csak a restore-hoz tartozó render lezárása után jelenhet meg.
+- Restore közben a Vezénylés lap eseményei redirectelik a felhasználót a Beállítások lapra.
+- Kötelező visszamérés: Snapshot_Restore_Smoke_Test + Regression_Smoke_Test zöld.

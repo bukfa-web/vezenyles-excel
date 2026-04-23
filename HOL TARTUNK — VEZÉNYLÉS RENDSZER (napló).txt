@@ -3300,3 +3300,30 @@ Visszamérés:
 Következmény:
 - A korábbi mentési korrupciós útvonal jelen körben megszűntnek tekinthető.
 - A safe rebuild restore utáni kötelező védelmi ág lett.
+
+[2026-04-23 16:25:00 | JAVÍTÁS + MÉRÉS — SNAPSHOT RESTORE LÁTVÁNY / LAPZÁR]
+
+Kiinduló jelenség:
+- Felhasználói vizuális teszt közben a Snapshot_Restore után átmenetileg úgy látszott, mintha a Vezénylés lapon eltűntek volna az adatok.
+- Az audit szerint a restore ténylegesen lefutott, de a render és a nézetfrissítés ideje alatt a felhasználó rá tudott nézni a még átmeneti állapotra.
+
+Javítás:
+- A modSnapshot restore útvonala most busy flaget tart fenn a teljes visszaállítás és render idejére.
+- Restore induláskor a rendszer a Beállítások lapra vált és ott állapotot ír ki: "Visszaállítás folyamatban".
+- A restore útvonal most a safe rebuild után kötelezően futtat egy VW_ResetCache + Render_Vezenyles_From_SSOT lépést.
+- A render lezárása után kerül csak sor a Vezénylés lap visszaaktiválására és viewport frissítésére.
+- A ThisWorkbook.Workbook_SheetActivate és a Vezénylés lap saját eseményei most redirectelik a felhasználót a Beállítások lapra, ha a restore még fut.
+- Eredmény: a Vezénylés lap addig nem nyitható meg, amíg a restore-hoz tartozó frissítés ténylegesen le nem zárult.
+
+Visszamérés:
+- Snapshot_Restore_Smoke_Test: zöld.
+- Regression_Smoke_Test: zöld.
+- Audit:
+  - SNAPSHOT_RESTORE_BEGIN megjelent,
+  - restore közben RENDER_BEGIN / RENDER_END a Snapshot_RestoreSafetyPoint hívóból megjelent,
+  - SNAPSHOT_RESTORE_END csak a render után jelent meg,
+  - REGRESSION_END pass=8; fail=0.
+
+Következmény:
+- A restore utáni "üresnek tűnő" átmeneti állapot mostantól el van zárva a felhasználó elől.
+- A pillanatképből visszaállítás UX-e egyértelműbb és biztonságosabb lett.
