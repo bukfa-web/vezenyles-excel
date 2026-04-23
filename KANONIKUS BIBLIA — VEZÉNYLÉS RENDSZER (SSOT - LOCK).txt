@@ -8071,3 +8071,21 @@ Elfogadási szabály:
   - Fuvarok_Smoke_Test zöld,
   - Regression_Smoke_Test zöld,
   - Save zöld.
+
+[2026-04-23 23:35:00 | LOCK PONTOSÍTÁS — FUVAROK LAP GOMB KÜLÖN KEZELŐZÓNÁBAN]
+
+Kanonikus szabály:
+- A Fuvarok lap kezelőgombja nem fedheti a fuvarminták egyetlen celláját sem.
+- A gomb elhelyezése ezért nem a fuvarminták sorában, hanem a minták alatti külön kezelőzónában történik.
+- A gomb horgonya:
+  - sor: a legutolsó kitöltött Fuvarok sor alá, de minimum a 4. sorba,
+  - oszlop: B.
+
+Elfogadási szabály:
+- Ha a fuvarminta a 2. sorban jobbra bővül, a gomb nem maradhat ugyanazon a soron.
+- Kötelező minimális visszamérés:
+  - last used fuvar oszlop rögzítése,
+  - gomb TopLeftCell és BottomRightCell rögzítése,
+  - Fuvarok_Smoke_Test zöld,
+  - Regression_Smoke_Test zöld,
+  - Save zöld.

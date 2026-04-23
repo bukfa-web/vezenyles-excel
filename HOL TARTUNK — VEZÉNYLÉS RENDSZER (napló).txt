@@ -3396,3 +3396,31 @@ Visszamérés:
   - FUVAROK_SMOKE=OK
   - REGRESSION_SMOKE=OK
   - SAVE=OK
+
+[2026-04-23 23:35:00 | JAVÍTÁS + MÉRÉS — FUVAROK LAP GOMB ELHELYEZÉS 2. KÖR]
+
+Felhasználói visszajelzés:
+- A korábbi dinamikus jobbra tolás önmagában nem volt elég.
+- A Fuvarok sor kibővülése után a gomb továbbra is rá tudott ülni a fuvarcellákra.
+
+Javítás:
+- A Fuvarok lap gombja már nem a fuvarminták mellé kerül, hanem alájuk.
+- A Fuvarok_GetButtonAnchor új szabálya:
+  - a gomb sorhorgonya a legutolsó kitöltött Fuvarok sor alá kerül,
+  - minimum sor: 4,
+  - oszlophorgony: B.
+- Ezzel a fuvarminták a 2. sorban szabadon bővíthetők jobbra, a gomb pedig külön kezelőzónába kerül.
+
+Visszamérés:
+- Mért állapot:
+  - LASTCOL=16
+  - LASTCOL_ADDR=P2
+  - BUTTON_TOPLEFT=B4
+  - BUTTON_BOTTOMRIGHT=F6
+  - BUTTON_TOP=74,4
+  - BUTTON_LEFT=58,8
+- Következtetés: a gomb teljesen lekerült a fuvarminták alá, nem takar ki egyetlen fuvarcellát sem.
+- Záró teszt:
+  - FUVAROK_SMOKE=OK
+  - REGRESSION_SMOKE=OK
+  - SAVE=OK
